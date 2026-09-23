@@ -1,4 +1,4 @@
-// Signal handling lets an interactive psql child receive Ctrl-C without canceling its parent.
+// Signal handling lets usql cancel individual queries without closing the interactive session.
 package cli
 
 import (
@@ -29,7 +29,7 @@ func Execute(command *cobra.Command) error {
 				return
 			case interrupt := <-interrupts:
 				if interrupt == os.Interrupt && interactive.Load() {
-					// Terminal-generated SIGINT also reaches psql in the foreground process group.
+					// Terminal-generated SIGINT also reaches usql’s query cancellation handler.
 					continue
 				}
 				cancel()
