@@ -1,0 +1,8 @@
+/bin/
+/sliplane
+/sliplane.exe
+*.test
+/coverage.out
+.env
+.env.*
+.DS_Store
