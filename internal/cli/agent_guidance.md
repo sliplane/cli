@@ -22,7 +22,7 @@ Use the Sliplane CLI to inspect and operate this project's Sliplane resources. R
 - Inspect storage with `sliplane s3 list -o json`, `sliplane s3 show BUCKET -o json`, and `sliplane postgres show DATABASE -o json` before making changes.
 - Browse objects with `sliplane s3 ls BUCKET [PREFIX] -o json`. Uploads and downloads protect existing destinations unless `--force` is supplied. Use `--force` only when replacement is intended.
 - S3 file commands need separate bucket credentials as well as an API token. Interactive text mode can create and save a key; automation must have saved credentials or both `SLIPLANE_S3_ACCESS_KEY_ID` and `SLIPLANE_S3_SECRET_ACCESS_KEY`. Key creation prints its secret once; do not expose that output.
-- Run SQL with `sliplane postgres query DATABASE 'SELECT now();' --output text`. It requires psql 16 or newer and an allowed client IP. SQL can modify data; review the target and statement before executing writes. Interactive approval to add an IP creates a persistent allowlist rule.
+- Run SQL with `sliplane postgres query DATABASE 'SELECT now();' --output text`. Use `--file script.sql` or omit the SQL argument to read piped stdin (`--file -` also selects stdin). `--timeout 30s` limits the whole command; the default is no overall timeout. Scripts stop on the first SQL error. It uses the built-in usql client and requires an allowed client IP. `sliplane postgres connect DATABASE` opens the interactive shell without installing psql or usql. SQL can modify data; review the target and statement before executing writes. Interactive approval to add an IP creates a persistent allowlist rule.
 
 ### Automation
 

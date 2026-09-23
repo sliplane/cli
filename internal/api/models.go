@@ -79,7 +79,7 @@ type PostgresDatabase struct {
 	CreatedAt       string              `json:"createdAt"`
 }
 
-// PostgresConnection keeps credentials available for psql but excludes them from output.
+// PostgresConnection keeps credentials available for SQL sessions but excludes them from output.
 type PostgresConnection struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`

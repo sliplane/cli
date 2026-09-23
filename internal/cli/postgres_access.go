@@ -41,7 +41,7 @@ func postgresSourceIP(ctx context.Context, destination net.IP) (netip.Addr, erro
 	}
 	dialer := &net.Dialer{Timeout: 10 * time.Second}
 	transport := &http.Transport{
-		// An HTTP proxy's public address need not be the source of a direct psql connection.
+		// An HTTP proxy's public address need not be the source of a direct PostgreSQL connection.
 		DialContext: func(ctx context.Context, _, address string) (net.Conn, error) {
 			return dialer.DialContext(ctx, network, address)
 		},

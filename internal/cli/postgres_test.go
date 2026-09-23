@@ -58,15 +58,13 @@ func TestPostgresCredentials(t *testing.T) {
 	if err := validatePostgresConnection(&connection); err != nil {
 		t.Fatal(err)
 	}
-	for _, test := range []string{"missing password", "invalid port", "newline", "null byte", "missing host"} {
+	for _, test := range []string{"missing password", "invalid port", "null byte", "missing host"} {
 		invalid := connection
 		switch test {
 		case "missing password":
 			invalid.Password = ""
 		case "invalid port":
 			invalid.Port = 65536
-		case "newline":
-			invalid.Password = "first\nsecond"
 		case "null byte":
 			invalid.Database = "app\x00"
 		case "missing host":
@@ -88,7 +86,10 @@ func TestPostgresCommandValidation(t *testing.T) {
 		want string
 	}{
 		{[]string{"connect"}, "missing required argument"},
-		{[]string{"query", "main"}, "missing required argument: sql"},
+		{[]string{"query"}, "missing required argument"},
+		{[]string{"query", "main", "SELECT 1", "--file", "script.sql"}, "either a SQL argument or --file"},
+		{[]string{"query", "main", "--file="}, "--file requires a path"},
+		{[]string{"query", "main", "SELECT 1", "--timeout=-1s"}, "--timeout must not be negative"},
 		{[]string{"query", "main", "select", "1"}, "too many arguments"},
 		{[]string{"query", "main", " "}, "SQL must not be empty"},
 		{[]string{"query", "main", "select 1", "-o", "json"}, "require --output text"},
@@ -98,10 +99,5 @@ func TestPostgresCommandValidation(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), test.want) || stdout != "" || stderr != "" {
 			t.Fatalf("%v: %q %q %v", test.args, stdout, stderr, err)
 		}
-	}
-	t.Setenv("PATH", t.TempDir())
-	_, _, err := runCommand(t, "http://127.0.0.1:1", "postgres", "connect", "main")
-	if err == nil || !strings.Contains(err.Error(), "psql was not found") {
-		t.Fatalf("missing psql: %v", err)
 	}
 }

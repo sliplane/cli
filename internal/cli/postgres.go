@@ -1,4 +1,4 @@
-// Postgres commands inspect databases and open psql sessions without printing credentials.
+// Postgres commands inspect databases and open usql sessions without printing credentials.
 package cli
 
 import (
@@ -64,7 +64,7 @@ func (o *options) postgresCommand() *cobra.Command {
 	return command
 }
 
-// resolvePostgres shares exact name and ID lookup between inspection and psql commands.
+// resolvePostgres shares exact name and ID lookup between inspection and SQL commands.
 func resolvePostgres(ctx context.Context, client *api.Client, name string) (api.PostgresDatabase, error) {
 	databases, err := client.PostgresDatabases(ctx)
 	if err != nil {
