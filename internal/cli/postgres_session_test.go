@@ -112,7 +112,7 @@ func TestPostgresUSQL(t *testing.T) {
 				if err := os.WriteFile(path, []byte(input), 0600); err != nil {
 					t.Fatal(err)
 				}
-				command := newCommand(server.URL)
+				command := newCommand(server.URL, server.URL+"/presets")
 				command.SetIn(strings.NewReader(input))
 				var output bytes.Buffer
 				command.SetOut(&output)
@@ -144,7 +144,7 @@ func TestPostgresUSQL(t *testing.T) {
 		}
 	})
 	t.Run("piped shell", func(t *testing.T) {
-		command := newCommand(server.URL)
+		command := newCommand(server.URL, server.URL+"/presets")
 		command.SetIn(strings.NewReader("BEGIN;\nSELECT 'shell-result';\nROLLBACK;\n\\conninfo\n\\q\n"))
 		var output bytes.Buffer
 		command.SetOut(&output)
@@ -158,7 +158,7 @@ func TestPostgresUSQL(t *testing.T) {
 		}
 	})
 	t.Run("cancel running query", func(t *testing.T) {
-		command := newCommand(server.URL)
+		command := newCommand(server.URL, server.URL+"/presets")
 		command.SetOut(&bytes.Buffer{})
 		command.SetErr(&bytes.Buffer{})
 		command.SetArgs([]string{"--token", "test-token", "--config", filepath.Join(t.TempDir(), "config.json"), "postgres", "query", "main", "SELECT pg_sleep(30)"})

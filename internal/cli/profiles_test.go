@@ -23,7 +23,7 @@ import (
 // runProfileCommand preserves one test's config across independent CLI invocations.
 func runProfileCommand(t *testing.T, serverURL, path string, args ...string) (string, string, error) {
 	t.Helper()
-	command := newCommand(serverURL)
+	command := newCommand(serverURL, serverURL+"/presets")
 	var stdout, stderr bytes.Buffer
 	command.SetOut(&stdout)
 	command.SetErr(&stderr)

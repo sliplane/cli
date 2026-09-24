@@ -122,7 +122,7 @@ func openSSH(command *cobra.Command, client *api.Client, service api.Service, ss
 	}
 	defer func() {
 		if err := cleanupSSHKey(command.Context(), client, service, key.ID); err != nil {
-			result = errors.Join(result, fmt.Errorf("clean up temporary SSH key %s (automatic deletion scheduled for %s): %w", key.ID, expiresAt.Format(time.RFC3339), err))
+			result = errors.Join(result, fmt.Errorf("clean up temporary SSH key %s (automatic deletion scheduled for %s): %w", key.ID, formatLocalTime(expiresAt), err))
 		}
 	}()
 	connection, err := client.AttachSSHKey(command.Context(), service.ProjectID, service.ID, key.ID)

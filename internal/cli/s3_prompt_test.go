@@ -103,7 +103,7 @@ func TestS3FirstUse(t *testing.T) {
 				}
 			}))
 			defer server.Close()
-			command := newCommand(server.URL)
+			command := newCommand(server.URL, server.URL+"/presets")
 			inputMaster, input := testTerminal(t)
 			outMaster, output := testTerminal(t)
 			errMaster, diagnostics := testTerminal(t)
@@ -234,7 +234,7 @@ func TestDownloadProgressOutput(t *testing.T) {
 	defer control.Close()
 	for _, scenario := range []string{"terminal", "json", "redirected output", "redirected error", "broken"} {
 		t.Run(scenario, func(t *testing.T) {
-			command := newCommand(control.URL)
+			command := newCommand(control.URL, control.URL+"/presets")
 			outMaster, output := testTerminal(t)
 			errMaster, diagnostics := testTerminal(t)
 			command.SetOut(output)

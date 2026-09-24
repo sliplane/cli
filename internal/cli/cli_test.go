@@ -21,7 +21,7 @@ import (
 // runCommand executes a fresh command tree with isolated preferences and fake credentials.
 func runCommand(t *testing.T, serverURL string, args ...string) (string, string, error) {
 	t.Helper()
-	command := newCommand(serverURL)
+	command := newCommand(serverURL, serverURL+"/presets")
 	var stdout, stderr bytes.Buffer
 	command.SetOut(&stdout)
 	command.SetErr(&stderr)
@@ -122,7 +122,7 @@ func TestLogSnapshotAndFollow(t *testing.T) {
 	if err != nil || stderr != "" || json.Unmarshal([]byte(stdout), &logs) != nil || len(logs) != 2 || logs[0].Message != "first" {
 		t.Fatalf("snapshot: %q %q %v", stdout, stderr, err)
 	}
-	command := newCommand(server.URL)
+	command := newCommand(server.URL, server.URL+"/presets")
 	var output bytes.Buffer
 	command.SetOut(&output)
 	command.SetErr(&output)
@@ -173,7 +173,7 @@ func TestConfigOverrides(t *testing.T) {
 		{args: []string{"config", "show"}, json: true},
 		{args: []string{"config", "show", "-o", "text"}},
 	} {
-		command := newCommand("")
+		command := newCommand("", ""+"/presets")
 		var output bytes.Buffer
 		command.SetOut(&output)
 		command.SetArgs(append([]string{"--config", path}, test.args...))

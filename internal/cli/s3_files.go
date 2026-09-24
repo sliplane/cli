@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"sliplane-cli/internal/objectstore"
@@ -18,7 +17,7 @@ import (
 
 // s3ListCommand lists buckets or browses files when a bucket is supplied.
 func (o *options) s3ListCommand() *cobra.Command {
-	var recursive bool
+	var recursive, all bool
 	command := &cobra.Command{Use: "list [bucket] [prefix]", Aliases: []string{"ls"}, Short: "List buckets or files in a bucket", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			if recursive {
@@ -48,6 +47,9 @@ func (o *options) s3ListCommand() *cobra.Command {
 		}
 		sort.Slice(entries, func(i, j int) bool { return entries[i].Key < entries[j].Key })
 		rows := [][]string{{"KEY", "SIZE", "MODIFIED"}}
+		if all {
+			rows[0] = append(rows[0], "TYPE")
+		}
 		for _, entry := range entries {
 			size := strconv.FormatInt(entry.Size, 10) + " B"
 			if entry.Type == "directory" {
@@ -55,12 +57,17 @@ func (o *options) s3ListCommand() *cobra.Command {
 			}
 			modified := ""
 			if entry.LastModified != nil {
-				modified = entry.LastModified.UTC().Format(time.RFC3339)
+				modified = formatLocalTime(*entry.LastModified)
 			}
-			rows = append(rows, []string{entry.Key, size, modified})
+			row := []string{entry.Key, size, modified}
+			if all {
+				row = append(row, entry.Type)
+			}
+			rows = append(rows, row)
 		}
 		return o.print(command, entries, rows)
 	}}
+	command.Flags().BoolVarP(&all, "all", "a", false, "Show additional columns (does not change which resources are listed)")
 	command.Flags().BoolVarP(&recursive, "recursive", "r", false, "Include files in all subdirectories")
 	return command
 }

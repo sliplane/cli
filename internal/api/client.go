@@ -168,15 +168,6 @@ func (c *Client) Service(ctx context.Context, projectID, serviceID string) (Serv
 	return service, err
 }
 
-// Deploy requests a deployment; acceptance does not imply completion.
-func (c *Client) Deploy(ctx context.Context, projectID, serviceID, tag string) error {
-	body := map[string]string{}
-	if tag != "" {
-		body["tag"] = tag
-	}
-	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/deploy", body, nil)
-}
-
 // Logs reads at most 500 lines, using the documented Unix-second lower bound.
 func (c *Client) Logs(ctx context.Context, projectID, serviceID string, from *time.Time) ([]Log, error) {
 	path := servicePath(projectID, serviceID) + "/logs"

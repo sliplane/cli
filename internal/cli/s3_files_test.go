@@ -141,6 +141,14 @@ func TestS3ListAliases(t *testing.T) {
 					previous = output
 				}
 			}
+			args := []string{"s3", "ls", "uploads", "photos/", "--all"}
+			if recursive {
+				args = append(args, "--recursive")
+			}
+			output, stderr, err := runCommand(t, control.URL, args...)
+			if err != nil || stderr != "" || !strings.Contains(output, "TYPE") || !strings.Contains(output, "file") || !strings.Contains(output, "photos/a.jpg") {
+				t.Fatalf("expanded file list: %q %q %v", output, stderr, err)
+			}
 		})
 	}
 }
