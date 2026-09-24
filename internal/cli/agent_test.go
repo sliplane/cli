@@ -158,7 +158,7 @@ func TestAgentInitRejectsUnapprovedWrites(t *testing.T) {
 		})
 	}
 	t.Chdir(t.TempDir())
-	command := newCommand("")
+	command := newCommand("", ""+"/presets")
 	command.SetArgs([]string{"--config", filepath.Join(t.TempDir(), "config.json"), "agent", "init", "--yes"})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

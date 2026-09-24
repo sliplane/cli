@@ -140,7 +140,7 @@ esac
 			defer server.Close()
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			command := newCommand(server.URL)
+			command := newCommand(server.URL, server.URL+"/presets")
 			var stdout, stderr bytes.Buffer
 			command.SetOut(&stdout)
 			if scenario == "canceled" {

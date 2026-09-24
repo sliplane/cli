@@ -10,6 +10,7 @@ import (
 	"sliplane-cli/internal/api"
 	"sliplane-cli/internal/auth"
 	"sliplane-cli/internal/config"
+	"sliplane-cli/internal/presets"
 )
 
 type options struct {
@@ -22,14 +23,15 @@ type options struct {
 	project     string
 	configPath  string
 	baseURL     string
+	catalogURL  string
 }
 
 // NewCommand constructs an independent command tree for each invocation.
-func NewCommand() *cobra.Command { return newCommand(api.BaseURL) }
+func NewCommand() *cobra.Command { return newCommand(api.BaseURL, presets.URL) }
 
 // newCommand accepts a local HTTP test server without exposing an endpoint override to users.
-func newCommand(baseURL string) *cobra.Command {
-	options := &options{baseURL: baseURL}
+func newCommand(baseURL, catalogURL string) *cobra.Command {
+	options := &options{baseURL: baseURL, catalogURL: catalogURL}
 	root := &cobra.Command{
 		Use:               "sliplane",
 		Short:             "Manage Sliplane from your terminal",
@@ -43,7 +45,7 @@ func newCommand(baseURL string) *cobra.Command {
 	root.PersistentFlags().StringVarP(&options.output, "output", "o", "text", "Output format: text or json (JSON Lines when following logs)")
 	root.PersistentFlags().StringVarP(&options.project, "project", "p", "", "Project name or ID (overrides config default)")
 	root.PersistentFlags().StringVar(&options.configPath, "config", "", "Config file (default: OS user config directory/sliplane/config.json)")
-	root.AddCommand(options.versionCommand(), options.agentCommand(), options.authCommand(), options.profileCommand(), options.configCommand(), options.projectCommand(), options.serverCommand(), options.serviceCommand(), options.s3Command(), options.postgresCommand(), options.logsCommand(), options.deployCommand(), options.sshCommand())
+	root.AddCommand(options.versionCommand(), options.agentCommand(), options.authCommand(), options.profileCommand(), options.configCommand(), options.projectCommand(), options.serverCommand(), options.serviceCommand(), options.s3Command(), options.postgresCommand(), options.logsCommand(), options.deployCommand(), options.presetCommand(), options.sshCommand())
 	return root
 }
 

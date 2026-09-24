@@ -35,7 +35,7 @@ func (o *options) s3Command() *cobra.Command {
 				return err
 			}
 			bucket := buckets[index]
-			return o.print(command, bucket, [][]string{{"Name", bucket.Name}, {"Status", bucket.Status}, {"Region", bucket.Region}, {"Endpoint", bucket.Endpoint}, {"Versioning", strconv.FormatBool(bucket.Versioning)}, {"Object locking", strconv.FormatBool(bucket.ObjectLocking)}, {"Created", bucket.CreatedAt}, {"ID", bucket.ID}})
+			return o.print(command, bucket, [][]string{{"Name", bucket.Name}, {"Status", bucket.Status}, {"Region", bucket.Region}, {"Endpoint", bucket.Endpoint}, {"Versioning", strconv.FormatBool(bucket.Versioning)}, {"Object locking", strconv.FormatBool(bucket.ObjectLocking)}, {"Created", formatTimestamp(bucket.CreatedAt)}, {"ID", bucket.ID}})
 		},
 	})
 	defaultRegion := os.Getenv("SLIPLANE_S3_REGION")
@@ -83,6 +83,10 @@ func (o *options) s3CreateCommand() *cobra.Command {
 
 // listBuckets displays the selected organization’s bucket catalog.
 func (o *options) listBuckets(command *cobra.Command) error {
+	all, err := command.Flags().GetBool("all")
+	if err != nil {
+		return err
+	}
 	client, _, err := o.client(command)
 	if err != nil {
 		return err
@@ -98,8 +102,15 @@ func (o *options) listBuckets(command *cobra.Command) error {
 		return buckets[i].ID < buckets[j].ID
 	})
 	rows := [][]string{{"NAME", "STATUS", "REGION", "ENDPOINT"}}
+	if all {
+		rows[0] = append(rows[0], "ID", "VERSIONING", "OBJECT LOCKING", "CREATED BY", "CREATED")
+	}
 	for _, bucket := range buckets {
-		rows = append(rows, []string{bucket.Name, bucket.Status, bucket.Region, bucket.Endpoint})
+		row := []string{bucket.Name, bucket.Status, bucket.Region, bucket.Endpoint}
+		if all {
+			row = append(row, bucket.ID, strconv.FormatBool(bucket.Versioning), strconv.FormatBool(bucket.ObjectLocking), bucket.CreatedByUserID, formatTimestamp(bucket.CreatedAt))
+		}
+		rows = append(rows, row)
 	}
 	return o.print(command, buckets, rows)
 }

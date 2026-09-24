@@ -40,7 +40,7 @@ func (o *options) s3KeyListCommand() *cobra.Command {
 		})
 		rows := [][]string{{"NAME", "ID", "ACCESS KEY ID", "CREATED"}}
 		for _, key := range keys {
-			rows = append(rows, []string{key.Name, key.ID, key.AccessKeyID, key.CreatedAt})
+			rows = append(rows, []string{key.Name, key.ID, key.AccessKeyID, formatTimestamp(key.CreatedAt)})
 		}
 		return o.print(command, keys, rows)
 	}}

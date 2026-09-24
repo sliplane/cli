@@ -21,7 +21,7 @@ func TestAgentInitConfirmation(t *testing.T) {
 	for _, answer := range []string{"yes\n", "n\n", "\n"} {
 		t.Run(answer, func(t *testing.T) {
 			t.Chdir(t.TempDir())
-			command := newCommand("")
+			command := newCommand("", ""+"/presets")
 			inputMaster, input := testTerminal(t)
 			outMaster, output := testTerminal(t)
 			errMaster, diagnostics := testTerminal(t)

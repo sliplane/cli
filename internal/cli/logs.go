@@ -158,6 +158,6 @@ func (o *options) printLogs(command *cobra.Command, logs []api.Log) error {
 
 // printLog emits a chronological line while neutralizing terminal control characters.
 func printLog(command *cobra.Command, line api.Log) error {
-	_, err := fmt.Fprintf(command.OutOrStdout(), "%s  %s\n", line.CreatedAt.UTC().Format(time.RFC3339Nano), terminalText(line.Message))
+	_, err := fmt.Fprintf(command.OutOrStdout(), "%s  %s\n", formatLocalTime(line.CreatedAt), terminalText(line.Message))
 	return err
 }

@@ -42,15 +42,16 @@ func TestClientContract(t *testing.T) {
 				return
 			}
 			fmt.Fprint(w, `[]`)
-		case "/projects/p1/services/s1/deploy":
-			var body map[string]string
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body["tag"] != "v2" {
+		case "/projects/p1/services":
+			var body CreateServiceInput
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name != "n8n" || body.Deployment.URL != "docker.io/n8nio/n8n:test" {
 				t.Errorf("wrong deployment body: %v %v", body, err)
 			}
 			if r.Method != http.MethodPost {
 				t.Error("deployment must POST")
 			}
-			w.WriteHeader(http.StatusAccepted)
+			w.WriteHeader(http.StatusCreated)
+			fmt.Fprint(w, `{"id":"s1","name":"n8n","status":"pending"}`)
 		case "/projects/p1/services/s1/logs":
 			if r.URL.Query().Get("from") != "1700000000" {
 				t.Errorf("wrong timestamp: %s", r.URL.RawQuery)
@@ -69,7 +70,7 @@ func TestClientContract(t *testing.T) {
 	if project, err := client.CreateProject(context.Background(), "demo"); err != nil || project.ID != "p1" {
 		t.Fatalf("create: %v %v", project, err)
 	}
-	if err := client.Deploy(context.Background(), "p1", "s1", "v2"); err != nil {
+	if service, err := client.CreateService(context.Background(), "p1", CreateServiceInput{Name: "n8n", ServerID: "server1", Deployment: ImageDeployment{URL: "docker.io/n8nio/n8n:test"}}); err != nil || service.ID != "s1" {
 		t.Fatal(err)
 	}
 	from := time.Unix(1700000000, 0)

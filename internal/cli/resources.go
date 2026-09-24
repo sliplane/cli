@@ -4,6 +4,7 @@ package cli
 import (
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,8 +12,9 @@ import (
 
 // projectCommand lists, resolves, and creates projects without mirroring every API route.
 func (o *options) projectCommand() *cobra.Command {
+	var all bool
 	command := &cobra.Command{Use: "project", Short: "List, inspect, and create projects"}
-	command.AddCommand(&cobra.Command{
+	list := &cobra.Command{
 		Use: "list", Short: "List all projects", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
@@ -25,12 +27,21 @@ func (o *options) projectCommand() *cobra.Command {
 			}
 			sort.Slice(projects, func(i, j int) bool { return projects[i].Name < projects[j].Name })
 			rows := [][]string{{"NAME"}}
+			if all {
+				rows[0] = append(rows[0], "ID")
+			}
 			for _, project := range projects {
-				rows = append(rows, []string{project.Name})
+				row := []string{project.Name}
+				if all {
+					row = append(row, project.ID)
+				}
+				rows = append(rows, row)
 			}
 			return o.print(command, projects, rows)
 		},
-	}, &cobra.Command{
+	}
+	list.Flags().BoolVarP(&all, "all", "a", false, "Show additional columns (does not change which resources are listed)")
+	command.AddCommand(list, &cobra.Command{
 		Use: "show <name-or-id>", Short: "Show a project", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, _, err := o.client(command)
@@ -65,8 +76,9 @@ func (o *options) projectCommand() *cobra.Command {
 
 // serverCommand provides server discovery without provisioning infrastructure.
 func (o *options) serverCommand() *cobra.Command {
+	var all bool
 	command := &cobra.Command{Use: "server", Short: "List and inspect servers"}
-	command.AddCommand(&cobra.Command{
+	list := &cobra.Command{
 		Use: "list", Short: "List all servers", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
@@ -79,12 +91,21 @@ func (o *options) serverCommand() *cobra.Command {
 			}
 			sort.Slice(servers, func(i, j int) bool { return servers[i].Name < servers[j].Name })
 			rows := [][]string{{"NAME", "STATUS", "TYPE", "LOCATION", "IP"}}
+			if all {
+				rows[0] = append(rows[0], "ID", "VCPU", "MEMORY", "DISK", "IPV6", "CREATED")
+			}
 			for _, server := range servers {
-				rows = append(rows, []string{server.Name, server.Status, server.InstanceType, server.Location, server.IPv4})
+				row := []string{server.Name, server.Status, server.InstanceType, server.Location, server.IPv4}
+				if all {
+					row = append(row, server.ID, strconv.Itoa(server.VCPU), strconv.Itoa(server.MemoryMB)+" MB", strconv.Itoa(server.DiskSizeGB)+" GB", server.IPv6, formatTimestamp(server.CreatedAt))
+				}
+				rows = append(rows, row)
 			}
 			return o.print(command, servers, rows)
 		},
-	}, &cobra.Command{
+	}
+	list.Flags().BoolVarP(&all, "all", "a", false, "Show additional columns (does not change which resources are listed)")
+	command.AddCommand(list, &cobra.Command{
 		Use: "show <name-or-id>", Short: "Show a server", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, _, err := o.client(command)
@@ -115,8 +136,9 @@ func (o *options) serverCommand() *cobra.Command {
 
 // serviceCommand shares log and deploy implementations with their top-level shortcuts.
 func (o *options) serviceCommand() *cobra.Command {
+	var all bool
 	command := &cobra.Command{Use: "service", Short: "List, inspect, deploy, and read service logs"}
-	command.AddCommand(&cobra.Command{
+	list := &cobra.Command{
 		Use: "list", Short: "List services across projects (or choose --project)", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
@@ -141,16 +163,25 @@ func (o *options) serviceCommand() *cobra.Command {
 				}
 			}
 			rows := [][]string{{"NAME", "PROJECT", "STATUS", "SERVER"}}
+			if all {
+				rows[0] = append(rows[0], "ID", "PROJECT ID", "SERVER ID", "CREATED")
+			}
 			for _, service := range services {
 				serverName := serverNames[service.ServerID]
 				if serverName == "" {
 					serverName = service.ServerID
 				}
-				rows = append(rows, []string{service.Name, service.ProjectName, service.Status, serverName})
+				row := []string{service.Name, service.ProjectName, service.Status, serverName}
+				if all {
+					row = append(row, service.ID, service.ProjectID, service.ServerID, formatTimestamp(service.CreatedAt))
+				}
+				rows = append(rows, row)
 			}
 			return o.print(command, services, rows)
 		},
-	}, &cobra.Command{
+	}
+	list.Flags().BoolVarP(&all, "all", "a", false, "Show additional columns (does not change which resources are listed)")
+	command.AddCommand(list, &cobra.Command{
 		Use: "show <name-or-id>", Short: "Show a service", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, _, err := o.client(command)
@@ -165,32 +196,8 @@ func (o *options) serviceCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", service.CreatedAt}})
+			return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}})
 		},
 	}, o.logsCommand(), o.deployCommand())
-	return command
-}
-
-// deployCommand reports request acceptance rather than claiming a completed deployment.
-func (o *options) deployCommand() *cobra.Command {
-	var tag string
-	command := &cobra.Command{
-		Use: "deploy <name-or-id>", Short: "Deploy a service (requires a read-write token)", Args: validateArguments,
-		RunE: func(command *cobra.Command, args []string) error {
-			client, _, err := o.client(command)
-			if err != nil {
-				return err
-			}
-			service, err := o.resolveService(command.Context(), client, args[0])
-			if err != nil {
-				return err
-			}
-			if err := client.Deploy(command.Context(), service.ProjectID, service.ID, tag); err != nil {
-				return err
-			}
-			return o.print(command, map[string]any{"accepted": true, "serviceId": service.ID, "projectId": service.ProjectID}, [][]string{{"Deployment accepted", service.Name}})
-		},
-	}
-	command.Flags().StringVar(&tag, "tag", "", "Image tag to deploy (image-based services only)")
 	return command
 }
