@@ -1,4 +1,4 @@
-// Service creation sends image configuration and new volume mounts in one API request.
+// Service mutations use public endpoints and never retry writes.
 package api
 
 import (
@@ -10,16 +10,24 @@ import (
 type CreateServiceInput struct {
 	Name        string                `json:"name"`
 	ServerID    string                `json:"serverId"`
-	Deployment  ImageDeployment       `json:"deployment"`
+	Deployment  ServiceDeployment     `json:"deployment"`
 	Network     ServiceNetwork        `json:"network"`
 	Env         []EnvironmentVariable `json:"env,omitempty"`
-	Volumes     []NewServiceVolume    `json:"volumes,omitempty"`
+	Volumes     []ServiceVolume       `json:"volumes,omitempty"`
 	Healthcheck string                `json:"healthcheck,omitempty"`
 	Cmd         string                `json:"cmd,omitempty"`
 }
 
-type ImageDeployment struct {
-	URL string `json:"url"`
+// ServiceDeployment carries the selected source's fields; callers reject image/repository flag combinations.
+type ServiceDeployment struct {
+	URL                      string   `json:"url"`
+	RegistryAuthenticationID string   `json:"registryAuthenticationId,omitempty"`
+	Branch                   string   `json:"branch,omitempty"`
+	AutoDeploy               *bool    `json:"autoDeploy,omitempty"`
+	DockerfilePath           *string  `json:"dockerfilePath,omitempty"`
+	DockerContext            string   `json:"dockerContext,omitempty"`
+	IncludePaths             []string `json:"includePaths,omitempty"`
+	IgnorePaths              []string `json:"ignorePaths,omitempty"`
 }
 
 type ServiceNetwork struct {
@@ -33,8 +41,10 @@ type EnvironmentVariable struct {
 	Secret bool   `json:"secret"`
 }
 
-type NewServiceVolume struct {
-	Name      string `json:"name"`
+// ServiceVolume selects either a new volume name or an existing volume ID, with its container mount path.
+type ServiceVolume struct {
+	ID        string `json:"id,omitempty"`
+	Name      string `json:"name,omitempty"`
 	MountPath string `json:"mountPath"`
 }
 
@@ -43,4 +53,39 @@ func (c *Client) CreateService(ctx context.Context, projectID string, input Crea
 	var service Service
 	err := c.request(ctx, http.MethodPost, "/projects/"+url.PathEscape(projectID)+"/services", input, &service)
 	return service, err
+}
+
+// UpdateServiceInput leaves deployment, environment, networking, and mounts untouched.
+type UpdateServiceInput struct {
+	Name        *string `json:"name,omitempty"`
+	Healthcheck *string `json:"healthcheck,omitempty"`
+	Cmd         *string `json:"cmd,omitempty"`
+}
+
+// UpdateService changes only explicitly supplied settings, including an empty command override.
+func (c *Client) UpdateService(ctx context.Context, projectID, serviceID string, input UpdateServiceInput) (Service, error) {
+	var service Service
+	err := c.request(ctx, http.MethodPatch, servicePath(projectID, serviceID), input, &service)
+	return service, err
+}
+
+// DeleteService deletes the explicitly resolved service and accepts the empty 204 response.
+func (c *Client) DeleteService(ctx context.Context, projectID, serviceID string) error {
+	return c.request(ctx, http.MethodDelete, servicePath(projectID, serviceID), nil, nil)
+}
+
+// RedeployService optionally selects an image tag; acceptance does not imply readiness.
+func (c *Client) RedeployService(ctx context.Context, projectID, serviceID, tag string) error {
+	var input any
+	if tag != "" {
+		input = struct {
+			Tag string `json:"tag"`
+		}{Tag: tag}
+	}
+	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/deploy", input, nil)
+}
+
+// ServiceAction submits a pause or unpause action supplied by the command tree.
+func (c *Client) ServiceAction(ctx context.Context, projectID, serviceID, action string) error {
+	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/"+action, nil, nil)
 }
