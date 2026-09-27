@@ -137,7 +137,7 @@ func (o *options) serverCommand() *cobra.Command {
 // serviceCommand shares log and deploy implementations with their top-level shortcuts.
 func (o *options) serviceCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "service", Short: "List, inspect, deploy, and read service logs"}
+	command := &cobra.Command{Use: "service", Short: "Inspect, deploy, and manage services"}
 	list := &cobra.Command{
 		Use: "list", Short: "List services across projects (or choose --project)", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
@@ -196,8 +196,9 @@ func (o *options) serviceCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}})
+			return o.printService(command, service)
 		},
-	}, o.logsCommand(), o.deployCommand())
+	}, o.logsCommand(), o.deployCommand(), o.serviceCreateCommand(), o.serviceUpdateCommand(), o.serviceRedeployCommand(), o.serviceDeleteCommand(),
+		o.serviceLifecycleCommand("pause", "Pause a service"), o.serviceLifecycleCommand("unpause", "Unpause a service"))
 	return command
 }

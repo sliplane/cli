@@ -1,0 +1,160 @@
+// Service management resolves exact targets and distinguishes accepted requests from completed operations.
+package cli
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"sliplane-cli/internal/api"
+)
+
+// serviceUpdateCommand sends a sparse patch without replacing environment variables or deployment settings.
+func (o *options) serviceUpdateCommand() *cobra.Command {
+	var name, healthcheck, cmd string
+	command := &cobra.Command{
+		Use: "update <name-or-id>", Short: "Update service settings (requires a read-write token)", Args: validateArguments,
+		Long:    "Update the name, health check path, or command override. Only supplied fields are changed.\nUse --cmd='' to remove the command override. Use service redeploy to deploy an existing service,\noptionally with a new image tag. Check service show and logs before reporting readiness.",
+		Example: "  sliplane service update api --project production --healthcheck /health\n  sliplane service update api --name backend --cmd='npm start'",
+		RunE: func(command *cobra.Command, args []string) error {
+			input := api.UpdateServiceInput{}
+			if command.Flags().Changed("name") {
+				if strings.TrimSpace(name) == "" {
+					return errors.New("--name must not be empty")
+				}
+				input.Name = &name
+			}
+			if command.Flags().Changed("healthcheck") {
+				if !strings.HasPrefix(healthcheck, "/") {
+					return errors.New("--healthcheck must be a path starting with /")
+				}
+				input.Healthcheck = &healthcheck
+			}
+			if command.Flags().Changed("cmd") {
+				input.Cmd = &cmd
+			}
+			if input.Name == nil && input.Healthcheck == nil && input.Cmd == nil {
+				return errors.New("provide --name, --healthcheck, or --cmd")
+			}
+			client, _, err := o.client(command)
+			if err != nil {
+				return err
+			}
+			service, err := o.resolveService(command.Context(), client, args[0])
+			if err != nil {
+				return err
+			}
+			service, err = client.UpdateService(command.Context(), service.ProjectID, service.ID, input)
+			if err != nil {
+				return err
+			}
+			return o.printService(command, service)
+		},
+	}
+	command.Flags().StringVar(&name, "name", "", "New service name")
+	command.Flags().StringVar(&healthcheck, "healthcheck", "", "HTTP health check path (e.g. /health)")
+	command.Flags().StringVar(&cmd, "cmd", "", "Command override (empty removes the override)")
+	return command
+}
+
+// serviceRedeployCommand operates on an existing service, unlike preset deployment which creates one.
+func (o *options) serviceRedeployCommand() *cobra.Command {
+	var tag string
+	command := &cobra.Command{
+		Use: "redeploy <name-or-id>", Short: "Redeploy an existing service (requires a read-write token)", Args: validateArguments,
+		Long:    "Trigger a new deployment of an existing service. Optionally select a new tag for an image-based service.\nThis returns when the request is accepted; use service show and logs to check deployment progress.",
+		Example: "  sliplane service redeploy api --project production\n  sliplane service redeploy api --tag v2.0.0",
+		RunE: func(command *cobra.Command, args []string) error {
+			if command.Flags().Changed("tag") && strings.TrimSpace(tag) == "" {
+				return errors.New("--tag must not be empty")
+			}
+			client, _, err := o.client(command)
+			if err != nil {
+				return err
+			}
+			service, err := o.resolveService(command.Context(), client, args[0])
+			if err != nil {
+				return err
+			}
+			if err := client.RedeployService(command.Context(), service.ProjectID, service.ID, tag); err != nil {
+				return err
+			}
+			return o.printServiceAction(command, service, "redeploy")
+		},
+	}
+	command.Flags().StringVar(&tag, "tag", "", "New image tag (image-based services only)")
+	return command
+}
+
+// serviceLifecycleCommand reports acceptance without inventing a service status from an empty API response.
+func (o *options) serviceLifecycleCommand(action, description string) *cobra.Command {
+	return &cobra.Command{
+		Use: action + " <name-or-id>", Short: description + " (requires a read-write token)", Args: validateArguments,
+		Long:    description + ". This returns when the request is accepted.\nUse service show to check the current status.",
+		Example: "  sliplane service " + action + " api --project production",
+		RunE: func(command *cobra.Command, args []string) error {
+			client, _, err := o.client(command)
+			if err != nil {
+				return err
+			}
+			service, err := o.resolveService(command.Context(), client, args[0])
+			if err != nil {
+				return err
+			}
+			if err := client.ServiceAction(command.Context(), service.ProjectID, service.ID, action); err != nil {
+				return err
+			}
+			return o.printServiceAction(command, service, action)
+		},
+	}
+}
+
+// serviceDeleteCommand requires terminal confirmation or --yes for the resolved service and project.
+func (o *options) serviceDeleteCommand() *cobra.Command {
+	var yes bool
+	command := &cobra.Command{
+		Use: "delete <name-or-id>", Short: "Delete a service (requires a read-write token)", Args: validateArguments,
+		Long:    "Delete an existing service. Requires confirmation in a terminal, or --yes for noninteractive use.",
+		Example: "  sliplane service delete api --project staging\n  sliplane service delete service_example --yes",
+		RunE: func(command *cobra.Command, args []string) error {
+			client, _, err := o.client(command)
+			if err != nil {
+				return err
+			}
+			service, err := o.resolveService(command.Context(), client, args[0])
+			if err != nil {
+				return err
+			}
+			if !yes {
+				if !o.canPrompt(command) {
+					return errors.New("service deletion requires confirmation; use --yes or rerun in a terminal")
+				}
+				question := fmt.Sprintf("Permanently delete service %q (%s) in project %q?", service.Name, terminalText(service.ID), service.ProjectID)
+				approved, err := confirm(command.Context(), command.InOrStdin(), command.ErrOrStderr(), question)
+				if err != nil {
+					return err
+				}
+				if !approved {
+					return errors.New("service deletion canceled")
+				}
+			}
+			if err := client.DeleteService(command.Context(), service.ProjectID, service.ID); err != nil {
+				return err
+			}
+			return o.print(command, map[string]any{"id": service.ID, "name": service.Name, "projectId": service.ProjectID, "deleted": true}, [][]string{{"Deleted", service.Name}, {"ID", service.ID}, {"Project", service.ProjectID}})
+		},
+	}
+	command.Flags().BoolVarP(&yes, "yes", "y", false, "Confirm permanent service deletion")
+	return command
+}
+
+// printServiceAction emits one receipt for an asynchronous operation without fetching a potentially stale status.
+func (o *options) printServiceAction(command *cobra.Command, service api.Service, action string) error {
+	return o.print(command, map[string]any{"id": service.ID, "name": service.Name, "projectId": service.ProjectID, "action": action, "accepted": true}, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Project", service.ProjectID}, {"Request", action + " accepted"}})
+}
+
+// printService shares the service detail output between inspection and settings updates.
+func (o *options) printService(command *cobra.Command, service api.Service) error {
+	return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}})
+}

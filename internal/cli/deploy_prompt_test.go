@@ -26,9 +26,13 @@ import (
 func TestDeployInteractiveDestination(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("TERM", "xterm-256color")
+	type promptReply struct{ title, keys string }
 	for _, scenario := range []struct {
 		name, projectKeys, serverKeys, projectID, serverID string
 		nameKeys, nameFlag, wantName                       string
+		createSource                                       []string
+		createReplies                                      []promptReply
+		omitCreateName                                     bool
 	}{
 		{name: "arrows", projectKeys: "\x1b[B\x1b[A\r", serverKeys: "\x1b[B\r", projectID: "one", serverID: "two", nameKeys: "\r"},
 		{name: "search and rename", projectKeys: "/Zulu\r", serverKeys: "/Alpha\r", projectID: "two", serverID: "one", nameKeys: "\x01\x0bworkflows\r", wantName: "workflows"},
@@ -38,6 +42,18 @@ func TestDeployInteractiveDestination(t *testing.T) {
 		{name: "cancel project", projectKeys: "\x03"},
 		{name: "cancel server", projectKeys: "\r", serverKeys: "\x03"},
 		{name: "context cancellation"},
+		{name: "create image", projectKeys: "/Zulu\r", serverKeys: "/Alpha\r", projectID: "two", serverID: "one", wantName: "custom-api", createSource: []string{"--image", "nginx:1.28"}},
+		{name: "create repository", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{"--repo", "https://github.com/acme/api"}},
+		{name: "cancel create", projectKeys: "\x03", createSource: []string{"--image", "nginx:1.28"}},
+		{name: "create missing image", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{}, createReplies: []promptReply{{"Deploy from", "\r"}, {"Image reference", "nginx:1.28\r"}}},
+		{name: "create missing repository", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{}, createReplies: []promptReply{{"Deploy from", "\x1b[B\r"}, {"GitHub repository URL", "https://github.com/acme/api\r"}}},
+		{name: "create inferred repository", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{"--branch", "develop"}, createReplies: []promptReply{{"GitHub repository URL", "https://github.com/acme/api\r"}}},
+		{name: "create inferred image", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{"--registry-auth", "credential1"}, createReplies: []promptReply{{"Image reference", "nginx:1.28\r"}}},
+		{name: "create missing name", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "named-api", omitCreateName: true, createSource: []string{"--image", "nginx:1.28"}, createReplies: []promptReply{{"Service name", "named-api\r"}}},
+		{name: "create correct image", projectKeys: "\r", serverKeys: "\r", projectID: "one", serverID: "one", wantName: "custom-api", createSource: []string{}, createReplies: []promptReply{{"Deploy from", "\r"}, {"Image reference", "\r"}, {"--image must not be empty", "nginx:1.28\r"}}},
+		{name: "cancel create source", createSource: []string{}, createReplies: []promptReply{{"Deploy from", "\x03"}}},
+		{name: "cancel create image", createSource: []string{}, createReplies: []promptReply{{"Deploy from", "\r"}, {"Image reference", "\x03"}}},
+		{name: "cancel create name", omitCreateName: true, createSource: []string{}, createReplies: []promptReply{{"Service name", "\x03"}}},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			created := make(chan api.CreateServiceInput, 1)
@@ -73,6 +89,13 @@ func TestDeployInteractiveDestination(t *testing.T) {
 			command.SetOut(terminal)
 			command.SetErr(terminal)
 			args := []string{"--config", filepath.Join(t.TempDir(), "config.json"), "--token", "test-token", "deploy", "n8n"}
+			if scenario.createSource != nil {
+				args = append(args[:4], "service", "create")
+				if !scenario.omitCreateName {
+					args = append(args, "custom-api")
+				}
+				args = append(args, scenario.createSource...)
+			}
 			if scenario.nameFlag != "" {
 				args = append(args, "--name", scenario.nameFlag)
 			}
@@ -98,6 +121,7 @@ func TestDeployInteractiveDestination(t *testing.T) {
 			go func() { done <- command.ExecuteContext(ctx) }()
 			var output strings.Builder
 			var projectAnswered, serverAnswered, nameAnswered, nameCorrected bool
+			createRepliesAnswered := 0
 		wait:
 			for {
 				select {
@@ -115,13 +139,20 @@ func TestDeployInteractiveDestination(t *testing.T) {
 						serverAnswered = true
 						keys = scenario.serverKeys
 					}
-					if !nameAnswered && strings.Contains(output.String(), "Service name") {
+					if scenario.createSource == nil && !nameAnswered && strings.Contains(output.String(), "Service name") {
 						nameAnswered = true
 						keys = scenario.nameKeys
 					}
 					if scenario.name == "empty name" && !nameCorrected && strings.Contains(output.String(), "service name must not be empty") {
 						nameCorrected = true
 						keys = "valid-name\r"
+					}
+					if createRepliesAnswered < len(scenario.createReplies) {
+						reply := scenario.createReplies[createRepliesAnswered]
+						if strings.Contains(output.String(), reply.title) {
+							createRepliesAnswered++
+							keys = reply.keys
+						}
 					}
 					if _, err := io.WriteString(master, keys); err != nil {
 						t.Fatal(err)
@@ -145,13 +176,22 @@ func TestDeployInteractiveDestination(t *testing.T) {
 					if input.ServerID != scenario.serverID {
 						t.Fatalf("selected wrong server: %q", input.ServerID)
 					}
+					if scenario.createSource != nil && input.Deployment.URL != "nginx:1.28" && input.Deployment.URL != "https://github.com/acme/api" {
+						t.Fatalf("incorrect deployment source: %q", input.Deployment.URL)
+					}
+					if scenario.name == "create inferred repository" && input.Deployment.Branch != "develop" {
+						t.Fatal("lost explicit branch")
+					}
+					if scenario.name == "create inferred image" && input.Deployment.RegistryAuthenticationID != "credential1" {
+						t.Fatal("lost registry credentials")
+					}
 					if scenario.wantName != "" && input.Name != scenario.wantName {
 						t.Fatalf("wrong service name: %q", input.Name)
 					}
 					if scenario.wantName == "" && !strings.HasPrefix(input.Name, "n8n-") {
 						t.Fatalf("lost generated name: %q", input.Name)
 					}
-					if scenario.nameFlag != "" && nameAnswered {
+					if (scenario.nameFlag != "" || scenario.createSource != nil) && nameAnswered {
 						t.Fatal("prompted despite explicit --name")
 					}
 					if scenario.name == "empty name" && !nameCorrected {
@@ -160,6 +200,9 @@ func TestDeployInteractiveDestination(t *testing.T) {
 				default:
 					t.Fatal("service was not created")
 				}
+			}
+			if createRepliesAnswered != len(scenario.createReplies) {
+				t.Fatalf("missing required prompts: answered %d of %d", createRepliesAnswered, len(scenario.createReplies))
 			}
 			after, err := term.GetState(int(terminal.Fd()))
 			if err != nil || !reflect.DeepEqual(before, after) {

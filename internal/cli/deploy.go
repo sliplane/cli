@@ -118,19 +118,32 @@ func (o *options) deployCommand() *cobra.Command {
 func deploymentEnvironment(values []string) ([]api.EnvironmentVariable, error) {
 	entries := []api.EnvironmentVariable{}
 	for _, value := range values {
-		key, content, supplied := strings.Cut(value, "=")
-		if strings.TrimSpace(key) == "" || strings.ContainsAny(key, " \t\r\n") {
-			return nil, errors.New("--env requires KEY=value or KEY")
+		entry, err := parseEnvironmentVariable(value)
+		if err != nil {
+			return nil, err
 		}
-		if !supplied {
-			content = os.Getenv(key)
+		if entry.Value == "" {
+			return nil, fmt.Errorf("environment variable %q is empty; supply --env KEY=value or set it locally", entry.Key)
 		}
-		if content == "" {
-			return nil, fmt.Errorf("environment variable %q is empty; supply --env KEY=value or set it locally", key)
-		}
-		entries = append(entries, api.EnvironmentVariable{Key: key, Value: content, Secret: true})
+		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+// parseEnvironmentVariable accepts literal values or local variables without echoing values on errors.
+func parseEnvironmentVariable(value string) (api.EnvironmentVariable, error) {
+	key, content, supplied := strings.Cut(value, "=")
+	if strings.TrimSpace(key) == "" || strings.ContainsAny(key, " \t\r\n\x00") {
+		return api.EnvironmentVariable{}, errors.New("environment variables require KEY=value or KEY")
+	}
+	if !supplied {
+		var exists bool
+		content, exists = os.LookupEnv(key)
+		if !exists {
+			return api.EnvironmentVariable{}, fmt.Errorf("environment variable %q is not set locally; supply KEY=value or set it locally", key)
+		}
+	}
+	return api.EnvironmentVariable{Key: key, Value: content, Secret: true}, nil
 }
 
 // presetServiceInput translates dashboard fields to the public creation API without silently losing mounts.
@@ -142,7 +155,7 @@ func presetServiceInput(preset presets.Preset, overrides []api.EnvironmentVariab
 	if settings.Public && settings.Protocol != "http" && settings.Protocol != "tcp" && settings.Protocol != "udp" {
 		return api.CreateServiceInput{}, fmt.Errorf("preset %q has an invalid network protocol", settings.PresetID)
 	}
-	input := api.CreateServiceInput{Name: settings.Name, Deployment: api.ImageDeployment{URL: settings.Image}, Network: api.ServiceNetwork{Public: settings.Public, Protocol: settings.Protocol}, Cmd: settings.Cmd}
+	input := api.CreateServiceInput{Name: settings.Name, Deployment: api.ServiceDeployment{URL: settings.Image}, Network: api.ServiceNetwork{Public: settings.Public, Protocol: settings.Protocol}, Cmd: settings.Cmd}
 	if settings.Protocol == "http" {
 		input.Healthcheck = settings.Healthcheck
 	}
@@ -176,7 +189,7 @@ func presetServiceInput(preset presets.Preset, overrides []api.EnvironmentVariab
 		if volumeName == "" || !strings.HasPrefix(mount.Path, "/") {
 			return api.CreateServiceInput{}, fmt.Errorf("preset %q has an invalid volume mount", settings.PresetID)
 		}
-		input.Volumes = append(input.Volumes, api.NewServiceVolume{Name: volumeName, MountPath: mount.Path})
+		input.Volumes = append(input.Volumes, api.ServiceVolume{Name: volumeName, MountPath: mount.Path})
 	}
 	return input, nil
 }
@@ -246,7 +259,7 @@ func (o *options) printCreatedService(command *cobra.Command, service api.Servic
 		ID        string `json:"id"`
 		Name      string `json:"name"`
 		Status    string `json:"status"`
-		Preset    string `json:"preset"`
+		Preset    string `json:"preset,omitempty"`
 		ProjectID string `json:"projectId"`
 		ServerID  string `json:"serverId"`
 		URL       string `json:"url,omitempty"`
@@ -258,7 +271,11 @@ func (o *options) printCreatedService(command *cobra.Command, service api.Servic
 	if err := json.Unmarshal(service.Network, &network); err == nil && network.Protocol == "http" && network.ManagedDomain != "" {
 		receipt.URL = "https://" + network.ManagedDomain
 	}
-	rows := [][]string{{"Created", service.Name}, {"ID", service.ID}, {"Preset", presetID}, {"Project", project.name}, {"Server", server.name}, {"Status", service.Status}}
+	rows := [][]string{{"Created", service.Name}, {"ID", service.ID}}
+	if presetID != "" {
+		rows = append(rows, []string{"Preset", presetID})
+	}
+	rows = append(rows, []string{"Project", project.name}, []string{"Server", server.name}, []string{"Status", service.Status})
 	if receipt.URL != "" {
 		rows = append(rows, []string{"URL", receipt.URL})
 	}

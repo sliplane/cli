@@ -70,7 +70,7 @@ func TestClientContract(t *testing.T) {
 	if project, err := client.CreateProject(context.Background(), "demo"); err != nil || project.ID != "p1" {
 		t.Fatalf("create: %v %v", project, err)
 	}
-	if service, err := client.CreateService(context.Background(), "p1", CreateServiceInput{Name: "n8n", ServerID: "server1", Deployment: ImageDeployment{URL: "docker.io/n8nio/n8n:test"}}); err != nil || service.ID != "s1" {
+	if service, err := client.CreateService(context.Background(), "p1", CreateServiceInput{Name: "n8n", ServerID: "server1", Deployment: ServiceDeployment{URL: "docker.io/n8nio/n8n:test"}}); err != nil || service.ID != "s1" {
 		t.Fatal(err)
 	}
 	from := time.Unix(1700000000, 0)
