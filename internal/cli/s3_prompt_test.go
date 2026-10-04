@@ -37,7 +37,7 @@ func TestS3FirstUse(t *testing.T) {
 				keyring.MockInitWithError(fmt.Errorf("keychain locked"))
 			}
 			configPath := filepath.Join(t.TempDir(), "config.json")
-			preferences := config.Config{Version: 1, ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org_work", CredentialID: "work-key"}}}
+			preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org_work", CredentialID: "work-key"}}}
 			if err := config.Save(configPath, preferences); err != nil {
 				t.Fatal(err)
 			}

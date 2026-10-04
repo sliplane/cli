@@ -52,7 +52,7 @@ func TestResolvePrecedence(t *testing.T) {
 
 func TestCredentialsAreIsolated(t *testing.T) {
 	keyring.MockInit()
-	for id, token := range map[string]string{LegacyCredentialID: "legacy", "work": "work-token", "personal": "personal-token"} {
+	for id, token := range map[string]string{"work": "work-token", "personal": "personal-token"} {
 		if err := Save(id, token); err != nil {
 			t.Fatal(err)
 		}

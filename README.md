@@ -33,7 +33,8 @@ the `sliplane` binary in a directory on your PATH.
 
 ## Getting started
 
-1. Log in with your Sliplane API token:
+1. Sign in to [Sliplane](https://sliplane.io) in your browser, select your team,
+   then log in from a terminal on the same computer:
 
    ```sh
    sliplane auth login

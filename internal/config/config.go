@@ -12,12 +12,9 @@ import (
 )
 
 type Config struct {
-	Version       int                `json:"version"`
 	ActiveProfile string             `json:"activeProfile,omitempty"`
 	Output        string             `json:"output,omitempty"`
 	Profiles      map[string]Profile `json:"profiles,omitempty"`
-	// Project preserves pre-profile preferences until the first profile is created.
-	Project string `json:"project,omitempty"`
 }
 
 type Profile struct {
@@ -42,17 +39,8 @@ func ValidateProfileName(name string) error {
 
 // validate rejects broken profile bindings and credential references shared between profiles.
 func validate(config Config) error {
-	if config.Version != 0 && config.Version != 1 {
-		return fmt.Errorf("unsupported config version %d", config.Version)
-	}
 	if config.Output != "" && config.Output != "text" && config.Output != "json" {
 		return errors.New("config output must be text or json")
-	}
-	if config.Version == 0 && (len(config.Profiles) > 0 || config.ActiveProfile != "") {
-		return errors.New("profiles require config version 1")
-	}
-	if len(config.Profiles) > 0 && config.Project != "" {
-		return errors.New("default projects must belong to a profile")
 	}
 	credentials := map[string]bool{}
 	for name, profile := range config.Profiles {
@@ -61,9 +49,6 @@ func validate(config Config) error {
 		}
 		if strings.TrimSpace(profile.OrganizationID) == "" || strings.TrimSpace(profile.CredentialID) == "" {
 			return fmt.Errorf("profile %q needs an organization and credential reference", name)
-		}
-		if profile.CredentialID == "api-token" {
-			return fmt.Errorf("profile %q must use a dedicated credential reference", name)
 		}
 		if credentials[profile.CredentialID] {
 			return errors.New("profiles must have separate credential references")

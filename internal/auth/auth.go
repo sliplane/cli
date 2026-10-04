@@ -10,9 +10,6 @@ import (
 
 const service = "sliplane-cli"
 
-// LegacyCredentialID identifies the token saved before profiles were introduced.
-const LegacyCredentialID = "api-token"
-
 // Resolve applies explicit flag, environment, then keychain precedence.
 func Resolve(flag string, flagSet bool, environment, credentialID string) (string, string, error) {
 	if flagSet {
@@ -22,11 +19,11 @@ func Resolve(flag string, flagSet bool, environment, credentialID string) (strin
 		return validate(environment, "environment")
 	}
 	if credentialID == "" {
-		return "", "", errors.New("authentication required; supply --token or SLIPLANE_TOKEN, or select a profile")
+		return "", "", errors.New("authentication required; run sliplane auth login, supply --token or SLIPLANE_TOKEN, or select a profile")
 	}
 	token, err := Load(credentialID)
 	if errors.Is(err, keyring.ErrNotFound) {
-		return "", "", errors.New("authentication required; set SLIPLANE_TOKEN, pass --token, or run sliplane auth login --token TOKEN")
+		return "", "", errors.New("authentication required; run sliplane auth login, set SLIPLANE_TOKEN, or pass --token")
 	}
 	if err != nil {
 		return "", "", fmt.Errorf("read OS keychain (use --token or SLIPLANE_TOKEN instead): %w", err)

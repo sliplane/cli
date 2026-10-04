@@ -84,9 +84,6 @@ func (o *options) load(command *cobra.Command) error {
 	}
 	if !command.Flags().Changed("project") {
 		o.project = preferences.Profiles[o.profileName].Project
-		if o.profileName == "" && preferences.Version == 0 {
-			o.project = preferences.Project
-		}
 	}
 	if o.output != "text" && o.output != "json" {
 		return errors.New("--output must be text or json")
@@ -95,7 +92,7 @@ func (o *options) load(command *cobra.Command) error {
 }
 
 func (o *options) client(command *cobra.Command) (*api.Client, string, error) {
-	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), o.credentialID())
+	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), o.preferences.Profiles[o.profileName].CredentialID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -106,17 +103,6 @@ func (o *options) client(command *cobra.Command) (*api.Client, string, error) {
 		}
 	}
 	return client, source, nil
-}
-
-// credentialID never falls back to another profile when a selected credential is missing.
-func (o *options) credentialID() string {
-	if o.profileName != "" {
-		return o.preferences.Profiles[o.profileName].CredentialID
-	}
-	if o.preferences.Version == 0 {
-		return auth.LegacyCredentialID
-	}
-	return ""
 }
 
 // checkOrganization prevents a supplied token from changing the selected team's identity.
