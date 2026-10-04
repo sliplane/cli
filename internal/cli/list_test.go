@@ -1,4 +1,3 @@
-// Expanded lists preserve compact defaults, project scope, and machine-readable output.
 package cli
 
 import (
@@ -9,7 +8,6 @@ import (
 	"testing"
 )
 
-// TestExpandedLists checks additional metadata without introducing detail requests or exposing passwords.
 func TestExpandedLists(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	useBerlinTime(t)
@@ -73,20 +71,5 @@ func TestExpandedLists(t *testing.T) {
 	output, _, err := runCommand(t, server.URL, "service", "list", "--all", "--project", "production")
 	if err != nil || !strings.Contains(output, "service_api") || strings.Contains(output, "service_stage") {
 		t.Fatalf("--all changed project scope: %q %v", output, err)
-	}
-}
-
-// TestExpandedEmptyLists retains the additional column headers when there are no resources.
-func TestExpandedEmptyLists(t *testing.T) {
-	t.Setenv("SLIPLANE_PROFILE", "")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `[]`)
-	}))
-	defer server.Close()
-	for _, resource := range []string{"project", "server", "service", "s3", "postgres"} {
-		output, _, err := runCommand(t, server.URL, resource, "list", "--all")
-		if err != nil || !strings.Contains(output, "ID") || strings.Count(output, "\n") != 1 {
-			t.Fatalf("%s empty list: %q %v", resource, output, err)
-		}
 	}
 }

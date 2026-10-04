@@ -1,4 +1,3 @@
-// Postgres commands inspect databases and open usql sessions without printing credentials.
 package cli
 
 import (
@@ -11,7 +10,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// postgresCommand lists and inspects databases in the selected organization.
 func (o *options) postgresCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "postgres", Short: "Manage and connect to PostgreSQL databases"}
@@ -79,7 +77,6 @@ func (o *options) postgresCommand() *cobra.Command {
 	return command
 }
 
-// resolvePostgres shares exact name and ID lookup between inspection and SQL commands.
 func resolvePostgres(ctx context.Context, client *api.Client, name string) (api.PostgresDatabase, error) {
 	databases, err := client.PostgresDatabases(ctx)
 	if err != nil {
@@ -96,7 +93,6 @@ func resolvePostgres(ctx context.Context, client *api.Client, name string) (api.
 	return client.PostgresDatabase(ctx, databases[index].ID)
 }
 
-// printPostgres shows database state while excluding passwords from both output formats.
 func (o *options) printPostgres(command *cobra.Command, database api.PostgresDatabase) error {
 	rows := [][]string{{"Name", database.Name}, {"Status", database.Status}, {"Region", database.Region}, {"Version", strconv.Itoa(database.Version)}, {"Disk", strconv.Itoa(database.DiskSizeGB) + " GB"}, {"Database", database.DatabaseName}, {"User", database.DatabaseUser}}
 	if database.Connection != nil {

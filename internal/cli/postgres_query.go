@@ -1,4 +1,3 @@
-// Query automation reads one SQL source before connecting and applies a command-wide deadline.
 package cli
 
 import (
@@ -15,7 +14,6 @@ import (
 	"golang.org/x/term"
 )
 
-// postgresQueryCommand executes an argument, file, or piped script using the embedded usql client.
 func (o *options) postgresQueryCommand() *cobra.Command {
 	var file string
 	var timeout time.Duration

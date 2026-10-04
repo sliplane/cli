@@ -1,4 +1,3 @@
-// SSH access uses personal public keys and service attachments from the public API.
 package api
 
 import (
@@ -22,7 +21,6 @@ type SSHKey struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-// CreateSSHKey registers only the public key and schedules its fallback deletion.
 func (c *Client) CreateSSHKey(ctx context.Context, name, publicKey string, expiresAt time.Time) (SSHKey, error) {
 	body := struct {
 		Name      string    `json:"name"`
@@ -34,19 +32,16 @@ func (c *Client) CreateSSHKey(ctx context.Context, name, publicKey string, expir
 	return key, err
 }
 
-// AttachSSHKey grants an owned key access to one service and returns its SSH connection details.
 func (c *Client) AttachSSHKey(ctx context.Context, projectID, serviceID, keyID string) (SSHConnection, error) {
 	var connection SSHConnection
 	err := c.request(ctx, http.MethodPut, servicePath(projectID, serviceID)+"/ssh-keys/"+url.PathEscape(keyID), nil, &connection)
 	return connection, err
 }
 
-// DetachSSHKey removes the service attachment before key deletion.
 func (c *Client) DetachSSHKey(ctx context.Context, projectID, serviceID, keyID string) error {
 	return c.request(ctx, http.MethodDelete, servicePath(projectID, serviceID)+"/ssh-keys/"+url.PathEscape(keyID), nil, nil)
 }
 
-// DeleteSSHKey removes a key once its service attachments have been removed.
 func (c *Client) DeleteSSHKey(ctx context.Context, keyID string) error {
 	return c.request(ctx, http.MethodDelete, "/ssh-keys/"+url.PathEscape(keyID), nil, nil)
 }

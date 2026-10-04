@@ -1,4 +1,3 @@
-// Storage operations use organization-scoped public endpoints.
 package api
 
 import (
@@ -14,34 +13,20 @@ type CreateBucketInput struct {
 	ObjectLocking bool   `json:"objectLocking"`
 }
 
-// CreateBucket provisions a bucket with explicit location and retention options.
 func (c *Client) CreateBucket(ctx context.Context, input CreateBucketInput) (Bucket, error) {
 	var bucket Bucket
 	err := c.request(ctx, http.MethodPost, "/buckets", input, &bucket)
 	return bucket, err
 }
 
-// Buckets lists the organization's S3 buckets; this response also supplies bucket details.
 func (c *Client) Buckets(ctx context.Context) ([]Bucket, error) {
-	buckets := []Bucket{}
-	err := c.request(ctx, http.MethodGet, "/buckets", nil, &buckets)
-	if buckets == nil {
-		buckets = []Bucket{}
-	}
-	return buckets, err
+	return list[Bucket](ctx, c, "/buckets")
 }
 
-// PostgresDatabases lists managed databases in the selected organization.
 func (c *Client) PostgresDatabases(ctx context.Context) ([]PostgresDatabase, error) {
-	databases := []PostgresDatabase{}
-	err := c.request(ctx, http.MethodGet, "/postgres", nil, &databases)
-	if databases == nil {
-		databases = []PostgresDatabase{}
-	}
-	return databases, err
+	return list[PostgresDatabase](ctx, c, "/postgres")
 }
 
-// PostgresDatabase retrieves fresh details after a database has been resolved by name or ID.
 func (c *Client) PostgresDatabase(ctx context.Context, id string) (PostgresDatabase, error) {
 	var database PostgresDatabase
 	err := c.request(ctx, http.MethodGet, "/postgres/"+url.PathEscape(id), nil, &database)
@@ -57,24 +42,16 @@ func (c *Client) SetPostgresAllowList(ctx context.Context, id string, entries []
 	return c.request(ctx, http.MethodPatch, "/postgres/"+url.PathEscape(id), map[string]any{"ipAllowList": rules}, nil)
 }
 
-// CreateBucketKey creates a dedicated credential for one bucket.
 func (c *Client) CreateBucketKey(ctx context.Context, bucketID, name string) (CreatedBucketKey, error) {
 	var key CreatedBucketKey
 	err := c.request(ctx, http.MethodPost, "/buckets/"+url.PathEscape(bucketID)+"/keys", map[string]string{"name": name}, &key)
 	return key, err
 }
 
-// BucketKeys lists metadata without retaining any secret fields in the response.
 func (c *Client) BucketKeys(ctx context.Context, bucketID string) ([]BucketKey, error) {
-	keys := []BucketKey{}
-	err := c.request(ctx, http.MethodGet, "/buckets/"+url.PathEscape(bucketID)+"/keys", nil, &keys)
-	if keys == nil {
-		keys = []BucketKey{}
-	}
-	return keys, err
+	return list[BucketKey](ctx, c, "/buckets/"+url.PathEscape(bucketID)+"/keys")
 }
 
-// DeleteBucketKey revokes only the explicitly identified bucket credential.
 func (c *Client) DeleteBucketKey(ctx context.Context, bucketID, keyID string) error {
 	return c.request(ctx, http.MethodDelete, "/buckets/"+url.PathEscape(bucketID)+"/keys/"+url.PathEscape(keyID), nil, nil)
 }

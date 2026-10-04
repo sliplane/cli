@@ -1,4 +1,3 @@
-// Credential tests use the library's in-memory keyring, never the user's real keychain.
 package auth
 
 import (
@@ -9,7 +8,6 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-// TestResolvePrecedence verifies CI and explicit overrides do not depend on keychain availability.
 func TestResolvePrecedence(t *testing.T) {
 	keyring.MockInit()
 	if err := Save("credential_work", "saved-token"); err != nil {
@@ -52,7 +50,6 @@ func TestResolvePrecedence(t *testing.T) {
 	}
 }
 
-// TestCredentialsAreIsolated prevents missing profile keys from falling back to the legacy entry.
 func TestCredentialsAreIsolated(t *testing.T) {
 	keyring.MockInit()
 	for id, token := range map[string]string{LegacyCredentialID: "legacy", "work": "work-token", "personal": "personal-token"} {

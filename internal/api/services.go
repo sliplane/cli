@@ -1,4 +1,3 @@
-// Service mutations use public endpoints and never retry writes.
 package api
 
 import (
@@ -48,7 +47,6 @@ type ServiceVolume struct {
 	MountPath string `json:"mountPath"`
 }
 
-// CreateService provisions a new service; the returned state does not imply readiness.
 func (c *Client) CreateService(ctx context.Context, projectID string, input CreateServiceInput) (Service, error) {
 	var service Service
 	err := c.request(ctx, http.MethodPost, "/projects/"+url.PathEscape(projectID)+"/services", input, &service)
@@ -62,19 +60,16 @@ type UpdateServiceInput struct {
 	Cmd         *string `json:"cmd,omitempty"`
 }
 
-// UpdateService changes only explicitly supplied settings, including an empty command override.
 func (c *Client) UpdateService(ctx context.Context, projectID, serviceID string, input UpdateServiceInput) (Service, error) {
 	var service Service
 	err := c.request(ctx, http.MethodPatch, servicePath(projectID, serviceID), input, &service)
 	return service, err
 }
 
-// DeleteService deletes the explicitly resolved service and accepts the empty 204 response.
 func (c *Client) DeleteService(ctx context.Context, projectID, serviceID string) error {
 	return c.request(ctx, http.MethodDelete, servicePath(projectID, serviceID), nil, nil)
 }
 
-// RedeployService optionally selects an image tag; acceptance does not imply readiness.
 func (c *Client) RedeployService(ctx context.Context, projectID, serviceID, tag string) error {
 	var input any
 	if tag != "" {
@@ -85,7 +80,6 @@ func (c *Client) RedeployService(ctx context.Context, projectID, serviceID, tag 
 	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/deploy", input, nil)
 }
 
-// ServiceAction submits a pause or unpause action supplied by the command tree.
 func (c *Client) ServiceAction(ctx context.Context, projectID, serviceID, action string) error {
 	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/"+action, nil, nil)
 }

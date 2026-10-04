@@ -1,4 +1,3 @@
-// Creation accepts literal environment files and explicit overrides without interpreting shell syntax.
 package cli
 
 import (

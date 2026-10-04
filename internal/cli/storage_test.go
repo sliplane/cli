@@ -1,4 +1,3 @@
-// Storage command tests exercise public routes, name resolution, and credential-free output.
 package cli
 
 import (
@@ -13,7 +12,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestS3Create checks provisioning options and keeps creation receipts free of credentials.
 func TestS3Create(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_S3_REGION", "us-east-1")
@@ -64,7 +62,6 @@ func TestS3Create(t *testing.T) {
 	}
 }
 
-// TestS3CreateErrors rejects invalid flags locally and never retries rejected provisioning.
 func TestS3CreateErrors(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_S3_REGION", "ger")
@@ -110,7 +107,6 @@ func TestS3CreateErrors(t *testing.T) {
 	}
 }
 
-// TestS3Discovery resolves buckets from the list endpoint without inventing a detail route.
 func TestS3Discovery(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +148,6 @@ func TestS3Discovery(t *testing.T) {
 	}
 }
 
-// TestPostgresDiscovery retains metadata while excluding passwords and URIs from every output format.
 func TestPostgresDiscovery(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	ready := `{"id":"pg_primary","name":"primary","databaseName":"app","databaseUser":"app_user","region":"ger","version":18,"diskSizeGb":20,"status":"running","connection":{"host":"db.example.test","port":5432,"database":"app","user":"app_user","password":"database-secret","uri":"postgres://app_user:database-secret@db.example.test/app"},"ipAllowList":[{"id":"fw_one","source":"203.0.113.0/24","description":"office","createdAt":"2026-09-01T10:00:00Z"}],"createdByUserId":"user_one","createdAt":"2026-09-01T10:00:00Z"}`
@@ -205,7 +200,6 @@ func TestPostgresDiscovery(t *testing.T) {
 	}
 }
 
-// TestStorageErrorsAndEmptyLists preserves machine-readable output and rejects duplicate names.
 func TestStorageErrorsAndEmptyLists(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	for _, resource := range []string{"s3", "postgres"} {

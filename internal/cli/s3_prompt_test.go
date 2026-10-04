@@ -24,7 +24,6 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// TestS3FirstUse exercises confirmation with real terminals and fake bucket APIs.
 func TestS3FirstUse(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	for _, name := range []string{"SLIPLANE_S3_ACCESS_KEY_ID", "SLIPLANE_S3_SECRET_ACCESS_KEY"} {
@@ -212,7 +211,6 @@ func TestS3FirstUse(t *testing.T) {
 	}
 }
 
-// TestDownloadProgressOutput keeps progress on terminal stderr and out of machine-readable output.
 func TestDownloadProgressOutput(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_S3_ACCESS_KEY_ID", "access")
@@ -288,7 +286,6 @@ func TestDownloadProgressOutput(t *testing.T) {
 	}
 }
 
-// testTerminal supplies actual terminal descriptors so production TTY detection is exercised.
 func testTerminal(t *testing.T) (*os.File, *os.File) {
 	t.Helper()
 	master, slave, err := pty.Open()

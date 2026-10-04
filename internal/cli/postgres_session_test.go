@@ -1,4 +1,3 @@
-// Built-in client tests exercise real PostgreSQL, without an external SQL client.
 package cli
 
 import (
@@ -29,7 +28,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestPostgresConnectionURL protects credentials and TLS settings from escaping and environment mistakes.
 func TestPostgresConnectionURL(t *testing.T) {
 	t.Setenv("PGHOSTADDR", "192.0.2.9")
 	t.Setenv("PGSSLMODE", "disable")
@@ -53,7 +51,6 @@ func TestPostgresConnectionURL(t *testing.T) {
 	}
 }
 
-// TestPostgresUSQL checks SQL, metadata commands, error status, cancellation, and TLS on a disposable server.
 func TestPostgresUSQL(t *testing.T) {
 	connection := testPostgresServer(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,3 @@
-// Profile management edits local settings and credentials without making API requests.
 package cli
 
 import (
@@ -18,7 +17,6 @@ type profileSummary struct {
 	Project        string `json:"project,omitempty"`
 }
 
-// profileCommand manages saved team profiles independently of API access.
 func (o *options) profileCommand() *cobra.Command {
 	command := &cobra.Command{Use: "profile", Short: "Manage team profiles"}
 	command.AddCommand(&cobra.Command{

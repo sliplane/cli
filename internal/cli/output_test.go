@@ -1,4 +1,3 @@
-// Timestamp output tests cover local timezone conversion without changing machine-readable data.
 package cli
 
 import (
@@ -12,7 +11,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// useBerlinTime makes timezone assertions independent of the test machine's location.
 func useBerlinTime(t *testing.T) {
 	t.Helper()
 	location, err := time.LoadLocation("Europe/Berlin")
@@ -24,7 +22,6 @@ func useBerlinTime(t *testing.T) {
 	t.Cleanup(func() { time.Local = previous })
 }
 
-// TestFormatTimestamp covers daylight saving time, offset conversion, and incomplete API values.
 func TestFormatTimestamp(t *testing.T) {
 	useBerlinTime(t)
 	for _, test := range []struct {
@@ -48,7 +45,6 @@ func TestFormatTimestamp(t *testing.T) {
 	}
 }
 
-// TestTimestampOutput keeps full ISO precision in JSON while formatting resource and log displays.
 func TestTimestampOutput(t *testing.T) {
 	useBerlinTime(t)
 	const timestamp = "2026-09-23T18:45:35.768321986Z"

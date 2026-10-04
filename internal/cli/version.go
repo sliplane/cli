@@ -1,4 +1,3 @@
-// Build metadata is embedded by the linker and available without config or credentials.
 package cli
 
 import (
@@ -9,10 +8,8 @@ import (
 	"sliplane-cli/internal/buildinfo"
 )
 
-// Plain go builds use this default; make build replaces it through -ldflags -X.
 var commit = "unknown"
 
-// versionCommand skips config loading so build details remain available when setup is broken.
 func (o *options) versionCommand() *cobra.Command {
 	return &cobra.Command{
 		Use: "version", Short: "Show the compiled version and commit hash", Args: validateArguments,

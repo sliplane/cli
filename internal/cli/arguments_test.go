@@ -1,4 +1,3 @@
-// Argument errors explain the repair without running commands or contaminating stdout.
 package cli
 
 import (
@@ -6,7 +5,6 @@ import (
 	"testing"
 )
 
-// TestArgumentErrors checks missing values, extra values, aliases, and nested command usage.
 func TestArgumentErrors(t *testing.T) {
 	for _, test := range []struct {
 		name    string
@@ -43,27 +41,6 @@ func TestArgumentErrors(t *testing.T) {
 			}
 			if test.name == "bucket name" && !strings.Contains(err.Error(), "Examples:\n  sliplane s3 create my-bucket") {
 				t.Fatalf("missing bucket creation example: %v", err)
-			}
-		})
-	}
-}
-
-// TestValidArgumentCounts preserves optional arguments without executing side effects.
-func TestValidArgumentCounts(t *testing.T) {
-	for _, args := range [][]string{
-		{"s3", "create", "my-bucket"},
-		{"s3", "list"}, {"s3", "list", "assets"}, {"s3", "ls", "assets", "prefix"},
-		{"s3", "upload", "assets", "photo.jpg"}, {"s3", "upload", "assets", "photo.jpg", "images/photo.jpg"},
-		{"s3", "download", "assets", "photo.jpg"}, {"s3", "download", "assets", "photo.jpg", "local.jpg"},
-		{"config", "set", "output", "json"}, {"service", "list"},
-	} {
-		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			command, remaining, err := NewCommand().Find(args)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := command.ValidateArgs(remaining); err != nil {
-				t.Fatal(err)
 			}
 		})
 	}

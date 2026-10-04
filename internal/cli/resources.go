@@ -1,4 +1,3 @@
-// Resource commands focus on discovery and a small set of explicit user actions.
 package cli
 
 import (
@@ -10,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// projectCommand lists, resolves, and creates projects without mirroring every API route.
 func (o *options) projectCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "project", Short: "List, inspect, and create projects"}
@@ -74,7 +72,6 @@ func (o *options) projectCommand() *cobra.Command {
 	return command
 }
 
-// serverCommand provides server discovery without provisioning infrastructure.
 func (o *options) serverCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "server", Short: "List and inspect servers"}
@@ -134,7 +131,6 @@ func (o *options) serverCommand() *cobra.Command {
 	return command
 }
 
-// serviceCommand shares log and deploy implementations with their top-level shortcuts.
 func (o *options) serviceCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "service", Short: "Inspect, deploy, and manage services"}

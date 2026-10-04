@@ -1,4 +1,3 @@
-// SSH tests exercise real key generation, subprocesses, and the HTTP lifecycle without a production service.
 package cli
 
 import (
@@ -20,7 +19,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestSSHSessionLifecycle verifies cleanup after success, setup failure, and cancellation.
 func TestSSHSessionLifecycle(t *testing.T) {
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
 		t.Skip("OpenSSH is not installed")
@@ -193,13 +191,11 @@ esac
 
 type sshCancelWriter struct{ cancel context.CancelFunc }
 
-// Write cancels a command once its child process has opened the shell.
 func (w *sshCancelWriter) Write(data []byte) (int, error) {
 	w.cancel()
 	return len(data), nil
 }
 
-// TestSSHConnectionValidation prevents malformed API data from reaching OpenSSH.
 func TestSSHConnectionValidation(t *testing.T) {
 	for _, test := range []struct {
 		connection api.SSHConnection
@@ -220,7 +216,6 @@ func TestSSHConnectionValidation(t *testing.T) {
 	}
 }
 
-// TestSSHArgumentsKeepHostVerification protects against silent host-key bypass or other saved identities.
 func TestSSHArgumentsKeepHostVerification(t *testing.T) {
 	arguments := sshArguments(api.SSHConnection{Host: "host", Port: 22222, Username: "service_1"}, "/private/key", "/private/control")
 	for _, required := range []string{"StrictHostKeyChecking=accept-new", "IdentitiesOnly=yes", "IdentityAgent=none", "BatchMode=yes"} {
@@ -230,7 +225,6 @@ func TestSSHArgumentsKeepHostVerification(t *testing.T) {
 	}
 }
 
-// TestSSHUsageRejectsInvalidOptions fails before any credentials or remote changes are needed.
 func TestSSHUsageRejectsInvalidOptions(t *testing.T) {
 	for _, test := range []struct {
 		args    []string

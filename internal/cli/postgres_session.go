@@ -1,4 +1,3 @@
-// PostgreSQL sessions connect directly with API credentials and verified TLS.
 package cli
 
 import (
@@ -13,7 +12,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// postgresConnectCommand opens the built-in SQL shell.
 func (o *options) postgresConnectCommand() *cobra.Command {
 	return &cobra.Command{
 		Use: "connect <name-or-id>", Short: "Open the built-in PostgreSQL shell", Args: validateArguments,
@@ -29,7 +27,6 @@ func (o *options) postgresConnectCommand() *cobra.Command {
 	}
 }
 
-// postgresDSN resolves credentials and checks access before constructing a verified TLS connection.
 func (o *options) postgresDSN(command *cobra.Command, name string) (string, error) {
 	if o.output != "text" {
 		return "", errors.New("PostgreSQL commands require --output text")

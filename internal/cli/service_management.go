@@ -1,4 +1,3 @@
-// Service management resolves exact targets and distinguishes accepted requests from completed operations.
 package cli
 
 import (
@@ -10,7 +9,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// serviceUpdateCommand sends a sparse patch without replacing environment variables or deployment settings.
 func (o *options) serviceUpdateCommand() *cobra.Command {
 	var name, healthcheck, cmd string
 	command := &cobra.Command{
@@ -58,7 +56,6 @@ func (o *options) serviceUpdateCommand() *cobra.Command {
 	return command
 }
 
-// serviceRedeployCommand operates on an existing service, unlike preset deployment which creates one.
 func (o *options) serviceRedeployCommand() *cobra.Command {
 	var tag string
 	command := &cobra.Command{
@@ -87,7 +84,6 @@ func (o *options) serviceRedeployCommand() *cobra.Command {
 	return command
 }
 
-// serviceLifecycleCommand reports acceptance without inventing a service status from an empty API response.
 func (o *options) serviceLifecycleCommand(action, description string) *cobra.Command {
 	return &cobra.Command{
 		Use: action + " <name-or-id>", Short: description + " (requires a read-write token)", Args: validateArguments,
@@ -110,7 +106,6 @@ func (o *options) serviceLifecycleCommand(action, description string) *cobra.Com
 	}
 }
 
-// serviceDeleteCommand requires terminal confirmation or --yes for the resolved service and project.
 func (o *options) serviceDeleteCommand() *cobra.Command {
 	var yes bool
 	command := &cobra.Command{
@@ -149,12 +144,10 @@ func (o *options) serviceDeleteCommand() *cobra.Command {
 	return command
 }
 
-// printServiceAction emits one receipt for an asynchronous operation without fetching a potentially stale status.
 func (o *options) printServiceAction(command *cobra.Command, service api.Service, action string) error {
 	return o.print(command, map[string]any{"id": service.ID, "name": service.Name, "projectId": service.ProjectID, "action": action, "accepted": true}, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Project", service.ProjectID}, {"Request", action + " accepted"}})
 }
 
-// printService shares the service detail output between inspection and settings updates.
 func (o *options) printService(command *cobra.Command, service api.Service) error {
 	return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}})
 }

@@ -1,4 +1,3 @@
-// Output preferences are shared, while each profile owns its default project.
 package cli
 
 import (
@@ -8,16 +7,12 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// configCommand offers noninteractive preference inspection and editing.
 func (o *options) configCommand() *cobra.Command {
 	command := &cobra.Command{Use: "config", Short: "Manage local preferences"}
 	command.AddCommand(&cobra.Command{
 		Use: "show", Short: "Show saved preferences and their file path", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
-			preferences, err := config.Load(o.configPath)
-			if err != nil {
-				return err
-			}
+			preferences := o.preferences
 			return o.print(command, map[string]any{"path": o.configPath, "preferences": preferences}, [][]string{{"File", o.configPath}, {"Profile", o.profileName}, {"Project", preferences.Profiles[o.profileName].Project}, {"Output", preferences.Output}})
 		},
 	}, &cobra.Command{
@@ -30,12 +25,8 @@ func (o *options) configCommand() *cobra.Command {
 	return command
 }
 
-// setPreference validates the key before atomically updating the existing preferences.
 func (o *options) setPreference(command *cobra.Command, key, value string) error {
-	preferences, err := config.Load(o.configPath)
-	if err != nil {
-		return err
-	}
+	preferences := o.preferences
 	switch key {
 	case "project":
 		profile, exists := preferences.Profiles[o.profileName]

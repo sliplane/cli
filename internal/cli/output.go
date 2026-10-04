@@ -1,4 +1,3 @@
-// Output is deliberately plain: JSON values or tab-aligned human-readable content.
 package cli
 
 import (
@@ -13,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// print emits one JSON document or a table, never progress or status decorations.
 func (o *options) print(command *cobra.Command, value any, rows [][]string) error {
 	if o.output == "json" {
 		return writeJSON(command.OutOrStdout(), value)
@@ -31,7 +29,6 @@ func (o *options) print(command *cobra.Command, value any, rows [][]string) erro
 	return writer.Flush()
 }
 
-// writeJSON encodes a complete value on one line, also suitable for log streaming.
 func writeJSON(writer io.Writer, value any) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetEscapeHTML(false)

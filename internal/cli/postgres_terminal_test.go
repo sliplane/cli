@@ -1,6 +1,5 @@
 //go:build !windows
 
-// Terminal tests exercise usql's real line editor and query cancellation in the foreground process group.
 package cli
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TestPostgresTerminal confirms that Ctrl-C cancels a query and leaves the interactive shell usable.
 func TestPostgresTerminal(t *testing.T) {
 	if os.Getenv("SLIPLANE_TEST_USQL_HELPER") == "1" {
 		command := &cobra.Command{RunE: func(command *cobra.Command, _ []string) error {

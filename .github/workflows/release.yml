@@ -1,4 +1,3 @@
-# Tags create drafts; maintainers publish after reviewing the artifacts and notes.
 name: Release
 
 on:

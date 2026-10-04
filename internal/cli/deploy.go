@@ -1,4 +1,3 @@
-// Deploy creates a new service from the dashboard catalog and never redeploys an existing service.
 package cli
 
 import (
@@ -15,7 +14,6 @@ import (
 	"sliplane-cli/internal/presets"
 )
 
-// presetCommand lists deployable IDs without printing generated values or credentials.
 func (o *options) presetCommand() *cobra.Command {
 	command := &cobra.Command{Use: "preset", Short: "Browse the dashboard preset catalog"}
 	command.AddCommand(&cobra.Command{Use: "list", Short: "List available service presets", Args: validateArguments,
@@ -45,7 +43,6 @@ func (o *options) presetCommand() *cobra.Command {
 	return command
 }
 
-// deployCommand creates from a catalog ID, retaining preset settings unless an explicit flag overrides them.
 func (o *options) deployCommand() *cobra.Command {
 	var serverName, name string
 	var environment []string
@@ -114,7 +111,6 @@ func (o *options) deployCommand() *cobra.Command {
 	return command
 }
 
-// deploymentEnvironment reads explicit overrides without including values in validation errors.
 func deploymentEnvironment(values []string) ([]api.EnvironmentVariable, error) {
 	entries := []api.EnvironmentVariable{}
 	for _, value := range values {
@@ -194,7 +190,6 @@ func presetServiceInput(preset presets.Preset, overrides []api.EnvironmentVariab
 	return input, nil
 }
 
-// deploymentDestination resolves explicit choices or prompts only when more than one resource exists.
 func (o *options) deploymentDestination(command *cobra.Command, client *api.Client, serverName string) (choice, choice, error) {
 	projects, err := client.Projects(command.Context())
 	if err != nil {
@@ -220,7 +215,6 @@ func (o *options) deploymentDestination(command *cobra.Command, client *api.Clie
 	return project, server, err
 }
 
-// chooseDeploymentResource never guesses among multiple resources in noninteractive commands.
 func (o *options) chooseDeploymentResource(command *cobra.Command, kind, query string, choices []choice) (choice, error) {
 	if query != "" {
 		index, err := resolve(kind, query, choices)

@@ -1,6 +1,5 @@
 //go:build !windows
 
-// Agent confirmation tests use real terminals to exercise the shared prompt policy.
 package cli
 
 import (
@@ -14,14 +13,13 @@ import (
 	"time"
 )
 
-// TestAgentInitConfirmation writes only after an affirmative terminal response.
 func TestAgentInitConfirmation(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("CLAUDECODE", "")
 	for _, answer := range []string{"yes\n", "n\n", "\n"} {
 		t.Run(answer, func(t *testing.T) {
 			t.Chdir(t.TempDir())
-			command := newCommand("", ""+"/presets")
+			command := newCommand("", "/presets")
 			inputMaster, input := testTerminal(t)
 			outMaster, output := testTerminal(t)
 			errMaster, diagnostics := testTerminal(t)

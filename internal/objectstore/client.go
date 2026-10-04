@@ -1,4 +1,3 @@
-// Object transfers use S3 signing and streaming while keeping Sliplane API credentials separate.
 package objectstore
 
 import (
@@ -52,7 +51,6 @@ type Client struct {
 	credentials Credentials
 }
 
-// New uses the bucket's endpoint without loading unrelated AWS credentials or following redirects.
 func New(endpoint, region string, credentials Credentials) (*Client, error) {
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
@@ -158,7 +156,6 @@ func (c *Client) List(ctx context.Context, bucket, prefix, delimiter string) ([]
 	}
 }
 
-// Upload streams a seekable file to the selected object key.
 func (c *Client) Upload(ctx context.Context, bucket, key string, file *os.File) (Transfer, error) {
 	info, err := file.Stat()
 	if err != nil {
@@ -217,7 +214,6 @@ type downloadWriter struct {
 	total       int64
 }
 
-// Write counts successful writes without buffering the download in memory.
 func (w *downloadWriter) Write(data []byte) (int, error) {
 	n, err := w.destination.Write(data)
 	w.written += int64(n)

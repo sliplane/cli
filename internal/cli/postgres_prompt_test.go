@@ -1,6 +1,5 @@
 //go:build !windows
 
-// Real terminals verify that allowlist changes require explicit interactive consent.
 package cli
 
 import (
@@ -21,7 +20,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestPostgresAllowlistPrompt preserves fresh rules and never writes after refusal or redirected input.
 func TestPostgresAllowlistPrompt(t *testing.T) {
 	for _, scenario := range []string{"approve", "IPv6", "decline", "enter", "already allowed", "concurrent rule", "read-only", "API failure", "piped input", "piped output", "piped error", "json"} {
 		t.Run(scenario, func(t *testing.T) {

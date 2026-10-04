@@ -1,4 +1,3 @@
-// Follow mode polls the public logs endpoint and keeps a bounded overlap for deduplication.
 package cli
 
 import (
@@ -23,7 +22,6 @@ type logCursor struct {
 	seen   map[logKey]int
 }
 
-// logsCommand supports both the resource command and the top-level shortcut.
 func (o *options) logsCommand() *cobra.Command {
 	var follow bool
 	var since string
@@ -56,7 +54,6 @@ func (o *options) logsCommand() *cobra.Command {
 	return command
 }
 
-// parseSince converts an explicit lookback or timestamp into the API's lower bound.
 func parseSince(value string, now time.Time) (*time.Time, error) {
 	if value == "" {
 		return nil, nil
@@ -143,7 +140,6 @@ func (c *logCursor) advance(logs []api.Log) []api.Log {
 	return fresh
 }
 
-// printLogs emits one complete snapshot without wrapping human logs in a table.
 func (o *options) printLogs(command *cobra.Command, logs []api.Log) error {
 	if o.output == "json" {
 		return writeJSON(command.OutOrStdout(), logs)
@@ -156,7 +152,6 @@ func (o *options) printLogs(command *cobra.Command, logs []api.Log) error {
 	return nil
 }
 
-// printLog emits a chronological line while neutralizing terminal control characters.
 func printLog(command *cobra.Command, line api.Log) error {
 	_, err := fmt.Fprintf(command.OutOrStdout(), "%s  %s\n", formatLocalTime(line.CreatedAt), terminalText(line.Message))
 	return err

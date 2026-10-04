@@ -1,4 +1,3 @@
-// These handwritten types cover the public API surface used by the CLI.
 package api
 
 import (

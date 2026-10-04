@@ -1,4 +1,3 @@
-// Deployment tests exercise creation through real HTTP clients without provisioning live resources.
 package cli
 
 import (
@@ -15,7 +14,6 @@ import (
 
 const deployCatalog = `{"presets":[{"name":"n8n","description":"Workflow automation","volumes":[{"id":"data","name":"n8n-data-__SLIPLANE_GENERATED_0__"}],"settings":{"presetId":"n8n","name":"n8n-__SLIPLANE_GENERATED_0__","deploySource":"registry","externalDockerImage":"docker.io/n8nio/n8n:test","public":true,"protocol":"http","healthcheckPath":"/healthz","envs":[{"key":"N8N_ENCRYPTION_KEY","value":"__SLIPLANE_GENERATED_1__","secret":true},{"key":"N8N_WEBHOOK_URL","value":"https://$SLIPLANE_DOMAIN","secret":false}],"volumes":[{"id":"data","containerMountPath":"/home/node/.n8n"}]}}],"generatedValues":[{"placeholder":"__SLIPLANE_GENERATED_0__","kind":"string","length":4},{"placeholder":"__SLIPLANE_GENERATED_1__","kind":"string","length":32}]}`
 
-// TestDeployCreatesFromPreset preserves the catalog configuration and never calls redeploy or leaks credentials.
 func TestDeployCreatesFromPreset(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	var created []api.CreateServiceInput
@@ -93,7 +91,6 @@ func TestDeployCreatesFromPreset(t *testing.T) {
 	}
 }
 
-// TestDeployRequiresDestination rejects ambiguous targets before creating anything.
 func TestDeployRequiresDestination(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +115,6 @@ func TestDeployRequiresDestination(t *testing.T) {
 	}
 }
 
-// TestPresetServiceInput validates required values and maps TCP presets without HTTP-only healthchecks.
 func TestPresetServiceInput(t *testing.T) {
 	var catalog presets.Catalog
 	if err := json.Unmarshal([]byte(deployCatalog), &catalog); err != nil {

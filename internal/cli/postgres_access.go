@@ -1,4 +1,3 @@
-// PostgreSQL access checks match public addresses against CIDRs before offering a persistent rule.
 package cli
 
 import (

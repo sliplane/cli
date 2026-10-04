@@ -1,4 +1,3 @@
-// Service management tests exercise public API contracts and prevent mutations against unintended targets.
 package cli
 
 import (
@@ -12,7 +11,6 @@ import (
 	"testing"
 )
 
-// TestServiceManagementRequests checks sparse updates, exact project routes, and empty action responses.
 func TestServiceManagementRequests(t *testing.T) {
 	for _, test := range []struct {
 		name, method, suffix, body string
@@ -110,7 +108,6 @@ func TestServiceManagementRequests(t *testing.T) {
 	}
 }
 
-// TestServiceManagementValidation rejects invalid updates before accessing credentials or the network.
 func TestServiceManagementValidation(t *testing.T) {
 	for _, test := range []struct {
 		args []string
@@ -139,7 +136,6 @@ func TestServiceManagementValidation(t *testing.T) {
 	}
 }
 
-// TestServiceManagementFailures verifies ambiguous targets, missing consent, and write errors never report success.
 func TestServiceManagementFailures(t *testing.T) {
 	for _, args := range [][]string{
 		{"update", "api", "--name", "backend"}, {"redeploy", "api"},

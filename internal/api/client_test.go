@@ -1,4 +1,3 @@
-// HTTP tests exercise real request encoding and response handling against local servers.
 package api
 
 import (
@@ -15,7 +14,6 @@ import (
 	"sliplane-cli/internal/buildinfo"
 )
 
-// TestClientContract checks bearer authentication, write bodies, log query units, and empty success bodies.
 func TestClientContract(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test-token" {
@@ -79,7 +77,6 @@ func TestClientContract(t *testing.T) {
 	}
 }
 
-// TestAPIError verifies permission failures retain their code and redact echoed credentials.
 func TestAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
@@ -96,7 +93,6 @@ func TestAPIError(t *testing.T) {
 	}
 }
 
-// TestClientRejectsRedirects ensures the token is never forwarded to another endpoint.
 func TestClientRejectsRedirects(t *testing.T) {
 	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("redirect followed") }))
 	defer destination.Close()
@@ -107,7 +103,6 @@ func TestClientRejectsRedirects(t *testing.T) {
 	}
 }
 
-// TestClientCancellation ensures follow can interrupt an in-flight HTTP request.
 func TestClientCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { cancel(); <-r.Context().Done() }))

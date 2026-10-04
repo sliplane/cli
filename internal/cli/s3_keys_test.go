@@ -1,4 +1,3 @@
-// Key management tests keep explicit credentials separate from automatic file access setup.
 package cli
 
 import (
@@ -16,7 +15,6 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// TestS3KeyLifecycle preserves saved access until its exact key is revoked.
 func TestS3KeyLifecycle(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
@@ -109,7 +107,6 @@ func TestS3KeyLifecycle(t *testing.T) {
 	}
 }
 
-// TestS3KeyPermissions allows read-only listing and requires write access for mutations without a saved profile.
 func TestS3KeyPermissions(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	for _, test := range []struct {
@@ -160,7 +157,6 @@ func TestS3KeyPermissions(t *testing.T) {
 	}
 }
 
-// TestS3KeyDeleteResolution rejects ambiguous names and preserves credentials on API failure.
 func TestS3KeyDeleteResolution(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
@@ -205,7 +201,6 @@ func TestS3KeyDeleteResolution(t *testing.T) {
 	}
 }
 
-// TestS3KeyCommandHelp exposes key management without public connection commands.
 func TestS3KeyCommandHelp(t *testing.T) {
 	command, _, err := NewCommand().Find([]string{"s3"})
 	if err != nil {

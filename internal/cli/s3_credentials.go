@@ -1,4 +1,3 @@
-// Bucket credentials stay in the OS keychain; config contains only per-profile references.
 package cli
 
 import (
@@ -19,21 +18,15 @@ import (
 	"sliplane-cli/internal/objectstore"
 )
 
-// s3Access verifies the API token and resolves a bucket within its organization.
 func (o *options) s3Access(command *cobra.Command, query string) (*api.Client, api.Bucket, error) {
 	client, _, err := o.client(command)
 	if err != nil {
 		return nil, api.Bucket{}, err
 	}
 	if o.identity == nil {
-		identity, err := client.Me(command.Context())
-		if err != nil {
+		if err := o.verifyIdentity(command.Context(), client); err != nil {
 			return nil, api.Bucket{}, err
 		}
-		if err := o.checkOrganization(identity); err != nil {
-			return nil, api.Bucket{}, err
-		}
-		o.identity = &identity
 	}
 	buckets, err := client.Buckets(command.Context())
 	if err != nil {
@@ -75,7 +68,6 @@ func (o *options) savedS3Credentials(bucketID string) (objectstore.Credentials, 
 	return credentials, nil
 }
 
-// objectClient uses explicit S3 environment credentials before the profile's saved bucket key.
 func (o *options) objectClient(command *cobra.Command, client *api.Client, bucket api.Bucket) (*objectstore.Client, error) {
 	accessKey, accessSet := os.LookupEnv("SLIPLANE_S3_ACCESS_KEY_ID")
 	secretKey, secretSet := os.LookupEnv("SLIPLANE_S3_SECRET_ACCESS_KEY")
@@ -125,9 +117,7 @@ func (o *options) connectBucket(command *cobra.Command, client *api.Client, buck
 		return fmt.Errorf("bucket %q already has a saved key; use sliplane s3 key list and sliplane s3 key delete to manage it", bucket.Name)
 	}
 	random := make([]byte, 16)
-	if _, err := rand.Read(random); err != nil {
-		return err
-	}
+	rand.Read(random)
 	reference := "s3_" + hex.EncodeToString(random)
 	key, err := createBucketKey(command, client, bucket.ID, "Sliplane CLI ("+o.profileName+")")
 	if err != nil {

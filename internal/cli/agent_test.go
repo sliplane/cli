@@ -1,4 +1,3 @@
-// Agent tests protect existing project instructions and verify offline, noninteractive command behavior.
 package cli
 
 import (
@@ -11,7 +10,6 @@ import (
 	"testing"
 )
 
-// TestAgentSectionPreservesInstructions covers append, refresh, line endings, and repeated initialization.
 func TestAgentSectionPreservesInstructions(t *testing.T) {
 	for _, test := range []struct {
 		name     string
@@ -50,7 +48,6 @@ func TestAgentSectionPreservesInstructions(t *testing.T) {
 	}
 }
 
-// TestAgentInitOffline verifies target selection, output, permissions, and no-op updates without credentials.
 func TestAgentInitOffline(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_TOKEN", "")
@@ -108,7 +105,6 @@ func TestAgentInitOffline(t *testing.T) {
 	}
 }
 
-// TestAgentInitRejectsBrokenSections ensures malformed markers never cause loss of user content.
 func TestAgentInitRejectsBrokenSections(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("CLAUDECODE", "")
@@ -137,7 +133,6 @@ func TestAgentInitRejectsBrokenSections(t *testing.T) {
 	}
 }
 
-// TestAgentInitRejectsUnapprovedWrites ensures pipes, invalid arguments, and cancellation cannot write guidance.
 func TestAgentInitRejectsUnapprovedWrites(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("CLAUDECODE", "")
@@ -158,7 +153,7 @@ func TestAgentInitRejectsUnapprovedWrites(t *testing.T) {
 		})
 	}
 	t.Chdir(t.TempDir())
-	command := newCommand("", ""+"/presets")
+	command := newCommand("", "/presets")
 	command.SetArgs([]string{"--config", filepath.Join(t.TempDir(), "config.json"), "agent", "init", "--yes"})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -170,7 +165,6 @@ func TestAgentInitRejectsUnapprovedWrites(t *testing.T) {
 	}
 }
 
-// TestAgentFilePreservesConcurrentEdits prevents stale confirmation from discarding newer instructions.
 func TestAgentFilePreservesConcurrentEdits(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "AGENTS.md")
 	if err := os.WriteFile(filename, []byte("new instructions"), 0600); err != nil {
@@ -186,7 +180,6 @@ func TestAgentFilePreservesConcurrentEdits(t *testing.T) {
 	}
 }
 
-// TestAgentFileRejectsSpecialTargets protects linked instructions and directories from replacement.
 func TestAgentFileRejectsSpecialTargets(t *testing.T) {
 	directory := t.TempDir()
 	if _, _, err := readAgentFile(directory); err == nil {

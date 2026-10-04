@@ -1,4 +1,3 @@
-// S3 commands inspect buckets using names and the selected team's API credential.
 package cli
 
 import (
@@ -12,7 +11,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// s3Command provides name-focused bucket lists and details from the public bucket catalog.
 func (o *options) s3Command() *cobra.Command {
 	command := &cobra.Command{Use: "s3", Short: "Manage buckets and transfer files"}
 	command.AddCommand(&cobra.Command{
@@ -47,7 +45,6 @@ func (o *options) s3Command() *cobra.Command {
 	return command
 }
 
-// s3CreateCommand creates a bucket in the selected storage region, defaulting to Germany.
 func (o *options) s3CreateCommand() *cobra.Command {
 	var input api.CreateBucketInput
 	command := &cobra.Command{Use: "create <bucket-name>", Short: "Create an S3 bucket (requires a read-write token)", Args: validateArguments, Example: "  sliplane s3 create my-bucket", RunE: func(command *cobra.Command, args []string) error {
@@ -81,7 +78,6 @@ func (o *options) s3CreateCommand() *cobra.Command {
 	return command
 }
 
-// listBuckets displays the selected organization’s bucket catalog.
 func (o *options) listBuckets(command *cobra.Command) error {
 	all, err := command.Flags().GetBool("all")
 	if err != nil {

@@ -1,4 +1,3 @@
-// Environment tests verify literal parsing and override precedence without evaluating file contents.
 package cli
 
 import (
@@ -11,7 +10,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestServiceEnvironment preserves empty and literal values while applying explicit secrecy and precedence.
 func TestServiceEnvironment(t *testing.T) {
 	t.Setenv("LOCAL", "from-local")
 	t.Setenv("EMPTY_LOCAL", "")
@@ -40,7 +38,6 @@ func TestServiceEnvironment(t *testing.T) {
 	}
 }
 
-// TestServiceEnvironmentErrors identifies malformed lines without echoing secret values.
 func TestServiceEnvironmentErrors(t *testing.T) {
 	t.Setenv("SLIPLANE_CREATE_MISSING", "")
 	if err := os.Unsetenv("SLIPLANE_CREATE_MISSING"); err != nil {

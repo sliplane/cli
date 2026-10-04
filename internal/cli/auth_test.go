@@ -1,4 +1,3 @@
-// Auth tests use isolated config files and the mock keyring, never the user's credentials.
 package cli
 
 import (
@@ -13,7 +12,6 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// TestLoginVerifiesBeforeSaving preserves an existing credential when verification fails.
 func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "")
 	t.Setenv("SLIPLANE_PROFILE", "")

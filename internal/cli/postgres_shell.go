@@ -1,4 +1,3 @@
-// PostgreSQL commands embed usql's parser, metadata commands, formatter, and line editor.
 package cli
 
 import (
@@ -90,7 +89,6 @@ func (o *options) runPostgres(command *cobra.Command, dsn, sql string) error {
 	return err
 }
 
-// postgresInput adapts Cobra streams to usql without introducing another SQL parser.
 func postgresInput(command *cobra.Command, interactive bool, sql string) (*rline.Rline, error) {
 	lines := &rline.Rline{Out: command.OutOrStdout(), Err: command.ErrOrStderr(), Int: interactive}
 	source := command.InOrStdin()

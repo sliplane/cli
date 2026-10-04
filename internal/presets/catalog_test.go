@@ -1,4 +1,3 @@
-// Catalog tests cover shared generated values and public request boundaries.
 package presets
 
 import (
@@ -10,7 +9,6 @@ import (
 	"testing"
 )
 
-// TestInstantiate creates independent secrets while retaining shared references and catalog defaults.
 func TestInstantiate(t *testing.T) {
 	catalog := Catalog{
 		Presets:         []Preset{{Name: "n8n", Settings: Settings{PresetID: "n8n", Name: "n8n-__SLIPLANE_GENERATED_0__", Cmd: "key=__SLIPLANE_GENERATED_0__ hex=__SLIPLANE_GENERATED_1__ uuid=__SLIPLANE_GENERATED_2__"}}},
@@ -50,7 +48,6 @@ func TestInstantiate(t *testing.T) {
 	}
 }
 
-// TestFetch never sends credentials and rejects malformed or unavailable catalogs.
 func TestFetch(t *testing.T) {
 	for _, test := range []struct {
 		name, body string

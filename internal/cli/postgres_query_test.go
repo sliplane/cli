@@ -1,4 +1,3 @@
-// Query input tests cover source selection and timeouts before any database connection is opened.
 package cli
 
 import (
@@ -12,7 +11,6 @@ import (
 	"time"
 )
 
-// TestPostgresQueryInput preserves scripts and reports invalid input without contacting the API.
 func TestPostgresQueryInput(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "script.sql")
 	script := "-- a comment\nSELECT $$one;two$$;\nSELECT 2\n"
@@ -53,7 +51,6 @@ func TestPostgresQueryInput(t *testing.T) {
 	}
 }
 
-// TestPostgresQueryEmptyInput rejects empty stdin and files instead of opening a shell.
 func TestPostgresQueryEmptyInput(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "empty.sql")
 	if err := os.WriteFile(path, []byte(" \n\t"), 0600); err != nil {
@@ -71,7 +68,6 @@ func TestPostgresQueryEmptyInput(t *testing.T) {
 	}
 }
 
-// TestPostgresQueryInputTimeout exits even when a pipeline never finishes producing SQL.
 func TestPostgresQueryInputTimeout(t *testing.T) {
 	reader, writer := io.Pipe()
 	defer reader.Close()
