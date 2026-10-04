@@ -42,7 +42,7 @@ func (o *options) authCommand() *cobra.Command {
 	}, &cobra.Command{
 		Use: "logout", Short: "Remove the selected profile's saved token", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
-			if err := auth.Delete(o.credentialID()); err != nil {
+			if err := auth.Delete(o.preferences.Profiles[o.profileName].CredentialID); err != nil {
 				return err
 			}
 			return o.print(command, map[string]any{"profile": o.profileName, "removed": true}, [][]string{{"Saved keychain token removed. Flags and environment are unaffected."}})
@@ -52,14 +52,10 @@ func (o *options) authCommand() *cobra.Command {
 }
 
 func (o *options) login(command *cobra.Command) error {
-	credentialID := o.credentialID()
 	if o.profileName == "" {
 		o.profileName = "default"
-		if profile, exists := o.preferences.Profiles[o.profileName]; exists {
-			credentialID = profile.CredentialID
-		}
 	}
-	token, source, err := o.loginToken(command, credentialID)
+	token, err := o.loginToken(command)
 	if err != nil {
 		return err
 	}
@@ -73,31 +69,21 @@ func (o *options) login(command *cobra.Command) error {
 	if err := o.saveLogin(token, identity); err != nil {
 		return err
 	}
-	if source == "keychain" && credentialID == auth.LegacyCredentialID {
-		if err := auth.Delete(auth.LegacyCredentialID); err != nil {
-			return fmt.Errorf("profile saved, but could not remove the old credential: %w", err)
-		}
-	}
 	return o.print(command, map[string]any{"profile": o.profileName, "stored": true, "identity": identity}, [][]string{{"Profile", o.profileName}, {"Organization", identity.OrganizationID}, {"Access", identity.TokenType}, {"Token saved to OS keychain."}})
 }
 
-// loginToken preserves explicit tokens and the one-time migration of legacy credentials.
-// Saved profile tokens are not reused: login must also renew expired browser access.
-func (o *options) loginToken(command *cobra.Command, credentialID string) (string, string, error) {
+// loginToken opens the browser unless a token was explicitly supplied.
+func (o *options) loginToken(command *cobra.Command) (string, error) {
 	if command.Flags().Changed("token") || os.Getenv("SLIPLANE_TOKEN") != "" {
-		return auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), credentialID)
-	}
-	if credentialID == auth.LegacyCredentialID {
-		if token, source, err := auth.Resolve("", false, "", credentialID); err == nil {
-			return token, source, nil
-		}
+		token, _, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), "")
+		return token, err
 	}
 	client := auth.OAuthClient{
 		ID:               "oclient_dj5pznsma6kt",
 		AuthorizationURL: "https://api.sliplane.io/web/oauth/authorize",
 		TokenURL:         "https://api.sliplane.io/web/oauth/token",
 	}
-	token, err := client.Login(command.Context(), func(authorizationURL string) error {
+	return client.Login(command.Context(), func(authorizationURL string) error {
 		fmt.Fprintln(command.ErrOrStderr(), "Opening Sliplane in your browser. Waiting for approval (up to 5 minutes); press Ctrl+C to cancel.")
 		if err := openBrowser(command.Context(), authorizationURL); err != nil {
 			if command.Context().Err() != nil {
@@ -107,7 +93,6 @@ func (o *options) loginToken(command *cobra.Command, credentialID string) (strin
 		}
 		return nil
 	})
-	return token, "browser", err
 }
 
 // saveLogin keeps each profile's keychain reference stable when its token is rotated.
@@ -125,9 +110,7 @@ func (o *options) saveLogin(token string, identity api.Identity) error {
 	if preferences.Profiles == nil {
 		preferences.Profiles = map[string]config.Profile{}
 	}
-	preferences.Profiles[o.profileName] = config.Profile{OrganizationID: identity.OrganizationID, CredentialID: credentialID, Project: preferences.Project}
-	preferences.Project = ""
-	preferences.Version = 1
+	preferences.Profiles[o.profileName] = config.Profile{OrganizationID: identity.OrganizationID, CredentialID: credentialID}
 	if len(preferences.Profiles) == 1 {
 		preferences.ActiveProfile = o.profileName
 	}

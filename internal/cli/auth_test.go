@@ -17,12 +17,12 @@ import (
 
 func TestLoginTokenSelection(t *testing.T) {
 	for _, test := range []struct {
-		name, flag, environment, want, source string
-		flagSet                               bool
+		name, flag, environment, want string
+		flagSet                       bool
 	}{
-		{name: "flag wins", flag: "flag-token", flagSet: true, environment: "environment-token", want: "flag-token", source: "flag"},
-		{name: "environment wins", environment: "environment-token", want: "environment-token", source: "environment"},
-		{name: "saved profile requires browser", source: "browser"},
+		{name: "flag wins", flag: "flag-token", flagSet: true, environment: "environment-token", want: "flag-token"},
+		{name: "environment wins", environment: "environment-token", want: "environment-token"},
+		{name: "saved profile requires browser"},
 		{name: "empty explicit token fails", flagSet: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -42,11 +42,11 @@ func TestLoginTokenSelection(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 			command.SetContext(ctx)
-			token, source, err := options.loginToken(command, "credential_work")
-			if token != test.want || source != test.source {
-				t.Fatalf("got token %q from %q, want %q from %q", token, source, test.want, test.source)
+			token, err := options.loginToken(command)
+			if token != test.want {
+				t.Fatalf("got token %q, want %q", token, test.want)
 			}
-			if test.source == "browser" && !errors.Is(err, context.Canceled) {
+			if !test.flagSet && test.environment == "" && !errors.Is(err, context.Canceled) {
 				t.Fatalf("browser login ignored cancellation: %v", err)
 			}
 			if test.want != "" && err != nil {
@@ -67,7 +67,7 @@ func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
 	path := filepath.Join(t.TempDir(), "config.json")
-	preferences := config.Config{Version: 1, ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work"}}}
+	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work"}}}
 	if err := config.Save(path, preferences); err != nil {
 		t.Fatal(err)
 	}

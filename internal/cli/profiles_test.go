@@ -47,7 +47,7 @@ func TestProfileLifecycle(t *testing.T) {
 		}
 	}
 	preferences, err := config.Load(path)
-	if err != nil || preferences.Version != 1 || preferences.ActiveProfile != "work" || len(preferences.Profiles) != 2 {
+	if err != nil || preferences.ActiveProfile != "work" || len(preferences.Profiles) != 2 {
 		t.Fatalf("profiles: %+v %v", preferences, err)
 	}
 	if preferences.Profiles["work"].CredentialID == preferences.Profiles["personal"].CredentialID {
@@ -131,7 +131,7 @@ func TestProfileMismatchStopsResourceRequests(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "personal-token")
 	keyring.MockInit()
 	path := filepath.Join(t.TempDir(), "config.json")
-	preferences := config.Config{Version: 1, ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org_work", CredentialID: "work-key"}}}
+	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org_work", CredentialID: "work-key"}}}
 	if err := config.Save(path, preferences); err != nil {
 		t.Fatal(err)
 	}
@@ -178,45 +178,12 @@ func TestProfileMismatchStopsResourceRequests(t *testing.T) {
 	}
 }
 
-func TestLegacyLoginMigration(t *testing.T) {
-	t.Setenv("SLIPLANE_PROFILE", "")
-	t.Setenv("SLIPLANE_TOKEN", "")
-	keyring.MockInit()
-	path := filepath.Join(t.TempDir(), "config.json")
-	if err := os.WriteFile(path, []byte(`{"project":"production","output":"json"}`), 0600); err != nil {
-		t.Fatal(err)
-	}
-	if err := auth.Save(auth.LegacyCredentialID, "legacy-token"); err != nil {
-		t.Fatal(err)
-	}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer legacy-token" {
-			t.Error("wrong migration token")
-		}
-		fmt.Fprint(w, `{"organizationId":"org_work","authType":"apikey","tokenType":"rw","user":{}}`)
-	}))
-	defer server.Close()
-	if _, _, err := runProfileCommand(t, server.URL, path, "auth", "login"); err != nil {
-		t.Fatal(err)
-	}
-	saved, err := config.Load(path)
-	if err != nil || saved.ActiveProfile != "default" || saved.Project != "" || saved.Output != "json" || saved.Profiles["default"].Project != "production" {
-		t.Fatalf("migration: %+v %v", saved, err)
-	}
-	if _, _, err := auth.Resolve("", false, "", auth.LegacyCredentialID); err == nil {
-		t.Fatal("migrated legacy token was not removed")
-	}
-	if token, _, err := auth.Resolve("", false, "", saved.Profiles["default"].CredentialID); err != nil || token != "legacy-token" {
-		t.Fatal("migration lost token", err)
-	}
-}
-
 func TestTokenOnlyCIAndExplicitSelection(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "ci-token")
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInitWithError(fmt.Errorf("no keychain"))
 	path := filepath.Join(t.TempDir(), "config.json")
-	if err := config.Save(path, config.Config{Version: 1}); err != nil {
+	if err := config.Save(path, config.Config{}); err != nil {
 		t.Fatal(err)
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

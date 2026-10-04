@@ -10,9 +10,6 @@ import (
 
 const service = "sliplane-cli"
 
-// LegacyCredentialID identifies the token saved before profiles were introduced.
-const LegacyCredentialID = "api-token"
-
 // Resolve applies explicit flag, environment, then keychain precedence.
 func Resolve(flag string, flagSet bool, environment, credentialID string) (string, string, error) {
 	if flagSet {
