@@ -11,6 +11,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -21,6 +23,32 @@ import (
 	"golang.org/x/term"
 	"sliplane-cli/internal/api"
 )
+
+// TestDeployPromptProcess runs the real command lifecycle with process-owned terminal descriptors.
+func TestDeployPromptProcess(t *testing.T) {
+	endpoint := os.Getenv("SLIPLANE_TEST_PROMPT_ENDPOINT")
+	if endpoint == "" {
+		t.Skip("subprocess helper")
+	}
+	command := newCommand(endpoint, endpoint+"/presets")
+	command.SetIn(os.Stdin)
+	command.SetOut(os.Stdout)
+	command.SetErr(os.Stderr)
+	for index, argument := range os.Args {
+		if argument == "--" {
+			command.SetArgs(os.Args[index+1:])
+			break
+		}
+	}
+	if err := Execute(command); err != nil {
+		if errors.Is(err, context.Canceled) {
+			os.Exit(130)
+		}
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
 
 // TestDeployInteractiveDestination checks keyboard navigation, filtering, and cancellation before creation.
 func TestDeployInteractiveDestination(t *testing.T) {
@@ -84,10 +112,6 @@ func TestDeployInteractiveDestination(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			command := newCommand(server.URL, server.URL+"/presets")
-			command.SetIn(terminal)
-			command.SetOut(terminal)
-			command.SetErr(terminal)
 			args := []string{"--config", filepath.Join(t.TempDir(), "config.json"), "--token", "test-token", "deploy", "n8n"}
 			if scenario.createSource != nil {
 				args = append(args[:4], "service", "create")
@@ -99,9 +123,16 @@ func TestDeployInteractiveDestination(t *testing.T) {
 			if scenario.nameFlag != "" {
 				args = append(args, "--name", scenario.nameFlag)
 			}
-			command.SetArgs(args)
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
+			processArgs := append([]string{"-test.run=^TestDeployPromptProcess$", "--"}, args...)
+			process := exec.CommandContext(ctx, os.Args[0], processArgs...)
+			raceLog := filepath.Join(t.TempDir(), "race")
+			process.Env = append(os.Environ(), "SLIPLANE_TEST_PROMPT_ENDPOINT="+server.URL, "GORACE=log_path="+raceLog)
+			process.Stdin, process.Stdout, process.Stderr = terminal, terminal, terminal
+			if err := process.Start(); err != nil {
+				t.Fatal(err)
+			}
 			frames := make(chan string)
 			go func() {
 				buffer := make([]byte, 4096)
@@ -118,7 +149,12 @@ func TestDeployInteractiveDestination(t *testing.T) {
 				}
 			}()
 			done := make(chan error, 1)
-			go func() { done <- command.ExecuteContext(ctx) }()
+			exited := make(chan struct{})
+			go func() {
+				done <- process.Wait()
+				close(exited)
+			}()
+			t.Cleanup(func() { cancel(); <-exited })
 			var output strings.Builder
 			var projectAnswered, serverAnswered, nameAnswered, nameCorrected bool
 			createRepliesAnswered := 0
@@ -132,7 +168,9 @@ func TestDeployInteractiveDestination(t *testing.T) {
 						projectAnswered = true
 						keys = scenario.projectKeys
 						if scenario.name == "context cancellation" {
-							cancel()
+							if err := process.Process.Signal(os.Interrupt); err != nil {
+								t.Fatal(err)
+							}
 						}
 					}
 					if !serverAnswered && strings.Contains(output.String(), "Choose server") {
@@ -163,8 +201,18 @@ func TestDeployInteractiveDestination(t *testing.T) {
 					t.Fatalf("menu did not exit: %q", output.String())
 				}
 			}
+			// Cancellation exits with 130, so check race logs even when the exit code is expected.
+			raceReports, globError := filepath.Glob(raceLog + ".*")
+			if globError != nil {
+				t.Fatal(globError)
+			}
+			for _, report := range raceReports {
+				contents, readError := os.ReadFile(report)
+				t.Fatalf("child process data race: %s (read error: %v)", contents, readError)
+			}
 			if scenario.projectID == "" {
-				if !errors.Is(err, context.Canceled) || len(created) != 0 {
+				var exitError *exec.ExitError
+				if !errors.As(err, &exitError) || exitError.ExitCode() != 130 || len(created) != 0 {
 					t.Fatalf("cancelled deployment: %v, creations: %d", err, len(created))
 				}
 			} else {
