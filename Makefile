@@ -1,4 +1,4 @@
-.PHONY: build test check
+.PHONY: build test check release-check release-snapshot
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
@@ -12,3 +12,9 @@ test:
 check:
 	go vet ./...
 	go test -race ./...
+
+release-check:
+	goreleaser check
+
+release-snapshot: release-check
+	goreleaser release --snapshot --clean
