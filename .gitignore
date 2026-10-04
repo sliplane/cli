@@ -1,4 +1,5 @@
 /bin/
+/dist/
 /sliplane
 /sliplane.exe
 *.test

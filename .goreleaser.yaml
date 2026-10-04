@@ -1,0 +1,45 @@
+# Versioned archives are shared by direct downloads and the native installer.
+version: 2
+project_name: sliplane
+
+builds:
+  - id: sliplane
+    main: ./cmd/sliplane
+    binary: sliplane
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+      - -mod=readonly
+    ldflags:
+      - -s -w -X sliplane-cli/internal/buildinfo.Version={{ .Version }} -X sliplane-cli/internal/cli.commit={{ .FullCommit }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - NOTICE
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  github:
+    owner: sliplane
+    name: cli
+  draft: true
+  prerelease: auto
+  extra_files:
+    - glob: scripts/install.sh
+
+changelog:
+  sort: asc

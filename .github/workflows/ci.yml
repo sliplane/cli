@@ -1,0 +1,37 @@
+# Run the same checks for pull requests and before creating a release.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make check
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: v2.15.1
+          args: check
+      - name: Build release archives without publishing
+        if: runner.os == 'Linux'
+        run: goreleaser release --snapshot --clean
+      - name: Install the built release
+        if: runner.os == 'Linux'
+        run: SLIPLANE_TEST_RELEASE_DIR="$PWD/dist" go test ./scripts -run '^TestReleaseInstall$' -count=1
