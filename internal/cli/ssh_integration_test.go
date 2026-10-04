@@ -1,4 +1,3 @@
-// The optional OpenSSH integration test uses a local daemon and temporary known-hosts file.
 package cli
 
 import (
@@ -23,7 +22,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestSSHOpenSSH checks activation retries and an actual shell over a shared OpenSSH connection.
 func TestSSHOpenSSH(t *testing.T) {
 	sshd := os.Getenv("SLIPLANE_TEST_SSHD")
 	if sshd == "" {

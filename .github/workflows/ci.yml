@@ -1,4 +1,3 @@
-# Run the same checks for pull requests and before creating a release.
 name: CI
 
 on:

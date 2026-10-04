@@ -1,6 +1,5 @@
 //go:build !windows
 
-// Installer tests use local release files so failures never touch the network or user installation.
 package scripts
 
 import (
@@ -23,7 +22,6 @@ import (
 	"github.com/creack/pty"
 )
 
-// TestInstall verifies selection, replacement, and failure preservation through the real shell script.
 func TestInstall(t *testing.T) {
 	for _, test := range []struct {
 		name, system, architecture, version, failure, state, wantMessage string
@@ -174,7 +172,6 @@ func TestInstall(t *testing.T) {
 	}
 }
 
-// TestInstallPath exercises shell setup through the installer, including a piped script in a real terminal.
 func TestInstallPath(t *testing.T) {
 	for _, test := range []struct {
 		name, shell, profile, reply                                                                   string
@@ -298,7 +295,6 @@ func TestInstallPath(t *testing.T) {
 	}
 }
 
-// releaseArchive creates a real archive for checksum and extraction tests.
 func releaseArchive(t *testing.T, binary []byte) *bytes.Buffer {
 	t.Helper()
 	var archive bytes.Buffer
@@ -319,7 +315,6 @@ func releaseArchive(t *testing.T, binary []byte) *bytes.Buffer {
 	return &archive
 }
 
-// TestReleaseInstall checks the archive contract and embedded version against actual GoReleaser output.
 func TestReleaseInstall(t *testing.T) {
 	directory := os.Getenv("SLIPLANE_TEST_RELEASE_DIR")
 	if directory == "" {
@@ -358,7 +353,6 @@ func TestReleaseInstall(t *testing.T) {
 	}
 }
 
-// installerCommand substitutes only transport and platform discovery; verification and installation stay real.
 func installerCommand(t *testing.T, releaseDirectory, installDirectory, version, system, architecture string, arguments ...string) *exec.Cmd {
 	t.Helper()
 	commands := t.TempDir()
@@ -396,7 +390,6 @@ esac
 	return command
 }
 
-// writeFile creates local test files and executables, failing immediately if setup fails.
 func writeFile(t *testing.T, path string, contents []byte, mode os.FileMode) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {

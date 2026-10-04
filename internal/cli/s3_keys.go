@@ -1,4 +1,3 @@
-// Bucket key commands manage remote credentials; automatic file access setup remains internal.
 package cli
 
 import (
@@ -14,14 +13,12 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// s3KeyCommand exposes the key operations supported by the bucket API.
 func (o *options) s3KeyCommand() *cobra.Command {
 	command := &cobra.Command{Use: "key", Short: "List, create, and delete bucket access keys"}
 	command.AddCommand(o.s3KeyListCommand(), o.s3KeyCreateCommand(), o.s3KeyDeleteCommand())
 	return command
 }
 
-// s3KeyListCommand lists key metadata without loading or exposing saved secrets.
 func (o *options) s3KeyListCommand() *cobra.Command {
 	return &cobra.Command{Use: "list <bucket>", Short: "List bucket access keys", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
 		client, bucket, err := o.s3Access(command, args[0])
@@ -46,7 +43,6 @@ func (o *options) s3KeyListCommand() *cobra.Command {
 	}}
 }
 
-// s3KeyCreateCommand returns the one-time secret for use in other clients, without changing the CLI's saved key.
 func (o *options) s3KeyCreateCommand() *cobra.Command {
 	return &cobra.Command{
 		Use: "create <bucket> <name>", Short: "Create a bucket key and show its credentials once (requires a read-write token)",
@@ -72,7 +68,6 @@ func (o *options) s3KeyCreateCommand() *cobra.Command {
 	}
 }
 
-// s3KeyDeleteCommand resolves an exact name or ID before revoking only the selected key.
 func (o *options) s3KeyDeleteCommand() *cobra.Command {
 	return &cobra.Command{Use: "delete <bucket> <name-or-id>", Short: "Revoke a bucket access key (requires a read-write token)", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
 		client, bucket, err := o.s3Access(command, args[0])

@@ -1,4 +1,3 @@
-// Agent guidance is bundled for offline use and replaces only its marked section in project instructions.
 package cli
 
 import (
@@ -19,7 +18,6 @@ const agentSectionEnd = "<!-- SLIPLANE BEST PRACTICES END -->"
 //go:embed agent_guidance.md
 var agentGuidance string
 
-// agentCommand installs guidance without resolving API credentials or calling Sliplane.
 func (o *options) agentCommand() *cobra.Command {
 	var yes bool
 	command := &cobra.Command{
@@ -43,7 +41,6 @@ func (o *options) agentCommand() *cobra.Command {
 	return command
 }
 
-// initAgent validates the existing section before asking permission and avoids rewriting unchanged files.
 func (o *options) initAgent(command *cobra.Command, filename string, yes bool) error {
 	original, mode, err := readAgentFile(filename)
 	if err != nil {

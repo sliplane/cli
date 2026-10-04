@@ -1,4 +1,3 @@
-// Command tests verify observable UX and output contracts through Cobra and a real HTTP server.
 package cli
 
 import (
@@ -18,20 +17,22 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// runCommand executes a fresh command tree with isolated preferences and fake credentials.
 func runCommand(t *testing.T, serverURL string, args ...string) (string, string, error) {
+	t.Helper()
+	return runProfileCommand(t, serverURL, filepath.Join(t.TempDir(), "config.json"), append([]string{"--token", "test-token"}, args...)...)
+}
+
+func runProfileCommand(t *testing.T, serverURL, path string, args ...string) (string, string, error) {
 	t.Helper()
 	command := newCommand(serverURL, serverURL+"/presets")
 	var stdout, stderr bytes.Buffer
 	command.SetOut(&stdout)
 	command.SetErr(&stderr)
-	defaults := []string{"--config", filepath.Join(t.TempDir(), "config.json"), "--token", "test-token"}
-	command.SetArgs(append(defaults, args...))
-	err := command.ExecuteContext(context.Background())
+	command.SetArgs(append([]string{"--config", path}, args...))
+	err := command.ExecuteContext(t.Context())
 	return stdout.String(), stderr.String(), err
 }
 
-// TestServiceDiscovery checks all-project lookup, duplicate names, ID selection, and scoped lookup.
 func TestServiceDiscovery(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -81,7 +82,6 @@ func TestServiceDiscovery(t *testing.T) {
 	}
 }
 
-// TestWriteDeniedHasNoStdout ensures a read-only token cannot produce a false success result.
 func TestWriteDeniedHasNoStdout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(403)
@@ -94,7 +94,6 @@ func TestWriteDeniedHasNoStdout(t *testing.T) {
 	}
 }
 
-// TestLogSnapshotAndFollow checks sorting, stream framing, cap warnings, and interruption.
 func TestLogSnapshotAndFollow(t *testing.T) {
 	logRequests := 0
 	ctx, cancel := context.WithCancel(context.Background())
@@ -142,7 +141,6 @@ func TestLogSnapshotAndFollow(t *testing.T) {
 	}
 }
 
-// TestCursorOverlap preserves legitimate repeated lines and bounds deduplication memory.
 func TestCursorOverlap(t *testing.T) {
 	at := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	repeated := api.Log{CreatedAt: at, Message: "same"}
@@ -160,7 +158,6 @@ func TestCursorOverlap(t *testing.T) {
 	}
 }
 
-// TestConfigOverrides ensures inherited persistent flags take precedence over saved preferences.
 func TestConfigOverrides(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := config.Save(path, config.Config{Output: "json", Project: "default"}); err != nil {
@@ -173,7 +170,7 @@ func TestConfigOverrides(t *testing.T) {
 		{args: []string{"config", "show"}, json: true},
 		{args: []string{"config", "show", "-o", "text"}},
 	} {
-		command := newCommand("", ""+"/presets")
+		command := newCommand("", "/presets")
 		var output bytes.Buffer
 		command.SetOut(&output)
 		command.SetArgs(append([]string{"--config", path}, test.args...))
@@ -186,7 +183,6 @@ func TestConfigOverrides(t *testing.T) {
 	}
 }
 
-// TestInvalidArgumentsFailBeforeNetwork protects noninteractive usage from accidental actions.
 func TestInvalidArgumentsFailBeforeNetwork(t *testing.T) {
 	for _, args := range [][]string{
 		{"project", "create"}, {"project", "create", ""}, {"service", "list", "unexpected"},
@@ -199,7 +195,6 @@ func TestInvalidArgumentsFailBeforeNetwork(t *testing.T) {
 	}
 }
 
-// TestParseSince accepts fractional RFC3339 times and positive durations.
 func TestParseSince(t *testing.T) {
 	now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 	since, err := parseSince("30m", now)
@@ -216,7 +211,6 @@ func TestParseSince(t *testing.T) {
 	}
 }
 
-// TestLogCapWarningKeepsJSONClean checks that a full page never contaminates piped content.
 func TestLogCapWarningKeepsJSONClean(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

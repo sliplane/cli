@@ -1,4 +1,3 @@
-// Name lookup is exact and organization-wide unless the user chooses a project.
 package cli
 
 import (
@@ -27,18 +26,18 @@ func resolve(kind, query string, choices []choice) (int, error) {
 			return index, nil
 		}
 	}
-	matches := []int{}
+	match := 0
 	ids := []string{}
 	for index, candidate := range choices {
 		if candidate.name == query {
-			matches = append(matches, index)
+			match = index
 			ids = append(ids, candidate.id)
 		}
 	}
-	if len(matches) == 1 {
-		return matches[0], nil
+	if len(ids) == 1 {
+		return match, nil
 	}
-	if len(matches) == 0 {
+	if len(ids) == 0 {
 		return 0, fmt.Errorf("%s %q not found", kind, query)
 	}
 	sort.Strings(ids)
@@ -49,7 +48,6 @@ func resolve(kind, query string, choices []choice) (int, error) {
 	return 0, fmt.Errorf("%s name %q is ambiguous; use an ID (%s)%s", kind, query, strings.Join(ids, ", "), hint)
 }
 
-// resolveProject searches the current organization's projects by name or ID.
 func resolveProject(ctx context.Context, client *api.Client, query string) (api.Project, error) {
 	projects, err := client.Projects(ctx)
 	if err != nil {

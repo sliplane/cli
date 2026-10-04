@@ -1,4 +1,3 @@
-// Interactive creation fills only missing required inputs; explicit flags and noninteractive validation stay authoritative.
 package cli
 
 import (
@@ -10,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// completeServiceCreate prompts for an omitted name and deployment source before destination selection.
 func (o *options) completeServiceCreate(command *cobra.Command, args []string) (string, error) {
 	name := ""
 	if len(args) > 0 {

@@ -1,4 +1,3 @@
-// PostgreSQL tests cover access decisions, invalid input, and credential-safe metadata.
 package cli
 
 import (
@@ -10,7 +9,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestPostgresAllowsIP checks address families, host rules, and default-deny behavior.
 func TestPostgresAllowsIP(t *testing.T) {
 	for _, test := range []struct {
 		source, address string
@@ -42,7 +40,6 @@ func TestPostgresAllowsIP(t *testing.T) {
 	}
 }
 
-// TestPostgresCredentials decodes credentials for sessions while keeping them out of JSON.
 func TestPostgresCredentials(t *testing.T) {
 	var connection api.PostgresConnection
 	if err := json.Unmarshal([]byte(`{"host":"db.example.test","port":5432,"database":"app","user":"owner","password":"private-secret","uri":"postgres://owner:private-secret@db.example.test/app"}`), &connection); err != nil {
@@ -79,7 +76,6 @@ func TestPostgresCredentials(t *testing.T) {
 	}
 }
 
-// TestPostgresCommandValidation rejects unusable arguments before resolving credentials or IPs.
 func TestPostgresCommandValidation(t *testing.T) {
 	for _, test := range []struct {
 		args []string

@@ -1,4 +1,3 @@
-// Config tests cover persisted preferences, invalid input, and filesystem permissions.
 package config
 
 import (
@@ -9,7 +8,6 @@ import (
 	"testing"
 )
 
-// TestConfigRoundTrip verifies missing defaults and atomic saves of non-secret preferences.
 func TestConfigRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nested", "config.json")
 	if config, err := Load(path); err != nil || !reflect.DeepEqual(config, Config{}) {
@@ -39,7 +37,6 @@ func TestConfigRoundTrip(t *testing.T) {
 	}
 }
 
-// TestProfileValidation rejects unsafe or ambiguous persisted bindings at the config boundary.
 func TestProfileValidation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	want := Config{Version: 1, ActiveProfile: "work", Output: "json", Profiles: map[string]Profile{"work": {OrganizationID: "org_work", CredentialID: "credential_work", Project: "api"}}}

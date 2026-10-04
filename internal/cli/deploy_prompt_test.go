@@ -1,6 +1,5 @@
 //go:build !windows
 
-// Deployment menu tests use real terminals and fake APIs to verify selection and cancellation.
 package cli
 
 import (
@@ -24,7 +23,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// TestDeployPromptProcess runs the real command lifecycle with process-owned terminal descriptors.
 func TestDeployPromptProcess(t *testing.T) {
 	endpoint := os.Getenv("SLIPLANE_TEST_PROMPT_ENDPOINT")
 	if endpoint == "" {
@@ -50,7 +48,6 @@ func TestDeployPromptProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-// TestDeployInteractiveDestination checks keyboard navigation, filtering, and cancellation before creation.
 func TestDeployInteractiveDestination(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("TERM", "xterm-256color")

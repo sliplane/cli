@@ -1,4 +1,3 @@
-// Management tests exercise request bodies, target resolution, and credential output through a local API.
 package cli
 
 import (
@@ -12,10 +11,8 @@ import (
 	"testing"
 )
 
-// postgresManagementResponse supplies credentials to ensure routine management output strips them.
 const postgresManagementResponse = `{"id":"pg_main","name":"main","status":"updating","diskSizeGb":50,"databaseName":"app","databaseUser":"owner","connection":{"host":"db.example.test","port":5432,"database":"app","user":"owner","password":"rotated-secret","uri":"postgres://owner:rotated-secret@db.example.test/app"},"ipAllowList":[{"source":"203.0.113.0/24"}]}`
 
-// TestPostgresManagementRequests verifies exact public routes and sparse payloads for every mutation.
 func TestPostgresManagementRequests(t *testing.T) {
 	for _, test := range []struct {
 		name, method, path, body string
@@ -101,7 +98,6 @@ func TestPostgresManagementRequests(t *testing.T) {
 	}
 }
 
-// TestPostgresManagementValidation rejects incomplete or invalid changes before network access.
 func TestPostgresManagementValidation(t *testing.T) {
 	for _, test := range []struct {
 		args []string
@@ -132,7 +128,6 @@ func TestPostgresManagementValidation(t *testing.T) {
 	}
 }
 
-// TestPostgresManagementFailures prevents destructive writes on ambiguous targets or missing consent.
 func TestPostgresManagementFailures(t *testing.T) {
 	for _, test := range []struct {
 		name, want string

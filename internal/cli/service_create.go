@@ -1,4 +1,3 @@
-// Service creation exposes both public API deployment sources while validating incompatible settings before writes.
 package cli
 
 import (
@@ -20,7 +19,6 @@ type serviceCreateFlags struct {
 	volumes, mounts               []string
 }
 
-// serviceCreateCommand reuses preset destination selection and credential-free creation receipts.
 func (o *options) serviceCreateCommand() *cobra.Command {
 	var flags serviceCreateFlags
 	command := &cobra.Command{
@@ -80,12 +78,8 @@ func (o *options) serviceCreateCommand() *cobra.Command {
 	return command
 }
 
-// serviceInput assembles a validated request before resolving credentials or contacting Sliplane.
 func (flags serviceCreateFlags) serviceInput(command *cobra.Command, name string) (api.CreateServiceInput, error) {
 	input := api.CreateServiceInput{Name: name, Cmd: flags.cmd}
-	if strings.TrimSpace(name) == "" {
-		return input, errors.New("service name must not be empty")
-	}
 	deployment, err := flags.serviceDeployment(command)
 	if err != nil {
 		return input, err
@@ -164,7 +158,6 @@ func (flags serviceCreateFlags) serviceDeployment(command *cobra.Command) (api.S
 	return deployment, nil
 }
 
-// validateServiceImage shares image validation between flags and interactive input.
 func validateServiceImage(value string) error {
 	if strings.TrimSpace(value) == "" {
 		return errors.New("--image must not be empty")

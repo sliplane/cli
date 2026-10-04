@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// TestConfirm requires an affirmative answer and treats Enter and EOF as a decline.
 func TestConfirm(t *testing.T) {
 	for _, test := range []struct {
 		input string
@@ -29,7 +28,6 @@ func TestConfirm(t *testing.T) {
 	}
 }
 
-// TestConfirmCancellation exits while stdin remains open without a submitted answer.
 func TestConfirmCancellation(t *testing.T) {
 	input, writer := io.Pipe()
 	defer input.Close()

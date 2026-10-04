@@ -1,4 +1,3 @@
-// Progress formatting handles empty and unknown lengths without inventing a percentage.
 package cli
 
 import (
@@ -7,7 +6,6 @@ import (
 	"testing"
 )
 
-// TestDownloadProgressValues checks byte units, unknown totals, and completion after throttled updates.
 func TestDownloadProgressValues(t *testing.T) {
 	for _, test := range []struct {
 		written, total int64

@@ -1,4 +1,3 @@
-// File commands leave object keys intact and commit downloads only after a complete transfer.
 package cli
 
 import (
@@ -15,7 +14,6 @@ import (
 	"sliplane-cli/internal/objectstore"
 )
 
-// s3ListCommand lists buckets or browses files when a bucket is supplied.
 func (o *options) s3ListCommand() *cobra.Command {
 	var recursive, all bool
 	command := &cobra.Command{Use: "list [bucket] [prefix]", Aliases: []string{"ls"}, Short: "List buckets or files in a bucket", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
@@ -72,7 +70,6 @@ func (o *options) s3ListCommand() *cobra.Command {
 	return command
 }
 
-// s3UploadCommand uploads one regular file, protecting existing objects unless --force is supplied.
 func (o *options) s3UploadCommand() *cobra.Command {
 	var force bool
 	command := &cobra.Command{Use: "upload <bucket> <file> [key]", Short: "Upload a file to a bucket", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
@@ -128,14 +125,14 @@ func (o *options) s3UploadCommand() *cobra.Command {
 	return command
 }
 
-// s3DownloadCommand writes through a private temporary file so interrupted downloads leave no partial result.
 func (o *options) s3DownloadCommand() *cobra.Command {
 	var force bool
 	command := &cobra.Command{Use: "download <bucket> <key> [file]", Short: "Download a file from a bucket", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
 		if args[1] == "" {
 			return errors.New("object key must not be empty")
 		}
-		destination := path.Base(strings.ReplaceAll(args[1], "\\", "/"))
+		basename := path.Base(strings.ReplaceAll(args[1], "\\", "/"))
+		destination := basename
 		if destination == "." || destination == ".." || destination == "/" {
 			return errors.New("specify a local filename for this object")
 		}
@@ -147,7 +144,7 @@ func (o *options) s3DownloadCommand() *cobra.Command {
 		}
 		info, err := os.Stat(destination)
 		if err == nil && info.IsDir() {
-			destination = filepath.Join(destination, path.Base(strings.ReplaceAll(args[1], "\\", "/")))
+			destination = filepath.Join(destination, basename)
 		}
 		if !force {
 			if _, err := os.Lstat(destination); err == nil {

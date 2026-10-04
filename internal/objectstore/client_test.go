@@ -1,4 +1,3 @@
-// Local S3 protocol tests cover signing, pagination, and streaming without real credentials.
 package objectstore
 
 import (
@@ -20,7 +19,6 @@ import (
 	"sliplane-cli/internal/buildinfo"
 )
 
-// TestWaitReadyStopsAtDeadline bounds activation polling and preserves cancellation.
 func TestWaitReadyStopsAtDeadline(t *testing.T) {
 	for _, test := range []struct {
 		code          string
@@ -64,7 +62,6 @@ func TestWaitReadyStopsAtDeadline(t *testing.T) {
 	}
 }
 
-// TestListPagination preserves prefixes and keys while following continuation tokens.
 func TestListPagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.Header.Get("Authorization"), "AWS4-HMAC-SHA256 Credential=access/") || strings.Contains(r.Header.Get("Authorization"), "secret") {
@@ -94,7 +91,6 @@ func TestListPagination(t *testing.T) {
 	}
 }
 
-// TestBinaryTransfer checks object-key encoding and streamed binary bodies.
 func TestBinaryTransfer(t *testing.T) {
 	payload := []byte{0, 1, 2, 255, 10, 0}
 	key := "folder/a + ü.bin"
@@ -143,7 +139,6 @@ func TestBinaryTransfer(t *testing.T) {
 	}
 }
 
-// TestDownloadProgress reports streamed bytes and handles responses without a known length.
 func TestDownloadProgress(t *testing.T) {
 	for _, scenario := range []string{"known", "unknown", "empty", "truncated", "progress failure"} {
 		t.Run(scenario, func(t *testing.T) {
@@ -197,7 +192,6 @@ func TestDownloadProgress(t *testing.T) {
 	}
 }
 
-// TestS3Errors protects secret values and rejects incomplete pagination.
 func TestS3Errors(t *testing.T) {
 	for _, test := range []struct {
 		name, body string
@@ -226,7 +220,6 @@ func TestS3Errors(t *testing.T) {
 	}
 }
 
-// TestExistsDoesNotConfuseForbiddenWithMissing prevents failed permission checks from allowing uploads.
 func TestExistsDoesNotConfuseForbiddenWithMissing(t *testing.T) {
 	for _, status := range []int{200, 404, 403} {
 		t.Run(fmt.Sprint(status), func(t *testing.T) {

@@ -1,4 +1,3 @@
-// Argument validation uses the same required <values> and optional [values] shown in help.
 package cli
 
 import (

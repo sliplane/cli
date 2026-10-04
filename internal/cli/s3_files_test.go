@@ -1,4 +1,3 @@
-// Transfer commands are tested against separate control-plane and S3 HTTP servers.
 package cli
 
 import (
@@ -14,7 +13,6 @@ import (
 	"testing"
 )
 
-// TestFileCommands preserves output contracts and never replaces a destination after a failed download.
 func TestFileCommands(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_S3_ACCESS_KEY_ID", "s3-access")
@@ -95,7 +93,6 @@ func TestFileCommands(t *testing.T) {
 	}
 }
 
-// TestS3ListAliases keeps list and ls identical for files, prefixes, and recursive listings.
 func TestS3ListAliases(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_S3_ACCESS_KEY_ID", "s3-access")
@@ -153,7 +150,6 @@ func TestS3ListAliases(t *testing.T) {
 	}
 }
 
-// TestS3ReadOnlyTokenCannotUpload rejects writes before reading S3 credentials or calling its endpoint.
 func TestS3ReadOnlyTokenCannotUpload(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

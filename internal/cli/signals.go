@@ -1,4 +1,3 @@
-// Signal handling lets usql cancel individual queries without closing the interactive session.
 package cli
 
 import (
@@ -13,7 +12,6 @@ import (
 
 type interactiveProcessKey struct{}
 
-// Execute cancels commands on interruption unless a foreground shell owns interactive Ctrl-C.
 func Execute(command *cobra.Command) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

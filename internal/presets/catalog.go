@@ -1,4 +1,3 @@
-// The public catalog comes from the dashboard; generated values are materialized locally per deployment.
 package presets
 
 import (
@@ -137,7 +136,6 @@ func (catalog Catalog) Instantiate(id string) (Preset, error) {
 	return preset, nil
 }
 
-// generateValue implements the dashboard's alphanumeric, hex, and UUID generators with crypto randomness.
 func generateValue(instruction GeneratedValue) (string, error) {
 	if instruction.Length < 1 || instruction.Length > 128 {
 		return "", fmt.Errorf("preset catalog contains an invalid generated value length")
@@ -150,9 +148,7 @@ func generateValue(instruction GeneratedValue) (string, error) {
 		const limit = 256 - 256%len(alphabet)
 		for len(value) < instruction.Length {
 			var random [64]byte
-			if _, err := rand.Read(random[:]); err != nil {
-				return "", fmt.Errorf("generate preset value: %w", err)
-			}
+			rand.Read(random[:])
 			for _, character := range random {
 				if int(character) >= limit {
 					continue
@@ -169,9 +165,7 @@ func generateValue(instruction GeneratedValue) (string, error) {
 			return "", fmt.Errorf("preset catalog contains an invalid UUID length")
 		}
 		value := make([]byte, instruction.Length)
-		if _, err := rand.Read(value); err != nil {
-			return "", fmt.Errorf("generate preset value: %w", err)
-		}
+		rand.Read(value)
 		if instruction.Kind == "hex" {
 			return hex.EncodeToString(value), nil
 		}

@@ -1,4 +1,3 @@
-// Creation tests pin source-specific payloads, destination resolution, and secret-free receipts against a local API.
 package cli
 
 import (
@@ -11,7 +10,6 @@ import (
 	"testing"
 )
 
-// TestServiceCreateRequests covers every creation field and verifies omitted defaults remain omitted.
 func TestServiceCreateRequests(t *testing.T) {
 	t.Setenv("CREATE_DATABASE_URL", "postgres://owner:local-secret@db/app")
 	for _, test := range []struct {
@@ -79,7 +77,6 @@ func TestServiceCreateRequests(t *testing.T) {
 	}
 }
 
-// TestServiceCreateValidation refuses incompatible or malformed input before any API access.
 func TestServiceCreateValidation(t *testing.T) {
 	for _, test := range []struct {
 		args []string
@@ -128,7 +125,6 @@ func TestServiceCreateValidation(t *testing.T) {
 	}
 }
 
-// TestServiceCreateFailures rejects ambiguous destinations and never retries a failed creation.
 func TestServiceCreateFailures(t *testing.T) {
 	for _, test := range []struct {
 		name, projects, servers, want string

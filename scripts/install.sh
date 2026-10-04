@@ -1,9 +1,7 @@
 #!/bin/sh
 # Install a checksum-verified release without sudo.
-# PATH setup follows the interaction used by https://fly.io/install.sh.
 set -eu
 
-# fail reports an actionable installation error without touching an existing binary.
 fail() {
   printf 'Error: %s\n' "$*" >&2
   exit 1
@@ -15,7 +13,6 @@ download() {
     --connect-timeout 10 --max-time 300 --retry 2 --output "$2" "$1"
 }
 
-# executable_version checks that the binary runs and reports Sliplane build metadata.
 executable_version() {
   version_output=$("$1" version -o text </dev/null 2>/dev/null) || return 1
   printf '%s\n' "$version_output" | awk '

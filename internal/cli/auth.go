@@ -1,4 +1,3 @@
-// Authentication verifies team identity before storing or using a profile credential.
 package cli
 
 import (
@@ -14,7 +13,6 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// authCommand exposes login, verified status, and local credential removal.
 func (o *options) authCommand() *cobra.Command {
 	command := &cobra.Command{Use: "auth", Short: "Manage API token authentication"}
 	command.AddCommand(&cobra.Command{
@@ -28,17 +26,12 @@ func (o *options) authCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			identity := o.identity
-			if identity == nil {
-				verified, err := client.Me(command.Context())
-				if err != nil {
+			if o.identity == nil {
+				if err := o.verifyIdentity(command.Context(), client); err != nil {
 					return err
 				}
-				if err := o.checkOrganization(verified); err != nil {
-					return err
-				}
-				identity = &verified
 			}
+			identity := o.identity
 			profileName := o.profileName
 			if profileName == "" {
 				profileName = "(none)"
@@ -57,7 +50,6 @@ func (o *options) authCommand() *cobra.Command {
 	return command
 }
 
-// login creates a profile on first use and refuses to rebind an existing profile to another team.
 func (o *options) login(command *cobra.Command) error {
 	credentialID := o.credentialID()
 	if o.profileName == "" {
@@ -94,9 +86,7 @@ func (o *options) saveLogin(token string, identity api.Identity) error {
 		return auth.Save(profile.CredentialID, token)
 	}
 	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return fmt.Errorf("create credential reference: %w", err)
-	}
+	rand.Read(bytes)
 	credentialID := "credential_" + hex.EncodeToString(bytes)
 	if err := auth.Save(credentialID, token); err != nil {
 		return err

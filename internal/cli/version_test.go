@@ -1,4 +1,3 @@
-// Version reporting must work offline even when local configuration cannot be loaded.
 package cli
 
 import (
@@ -12,7 +11,6 @@ import (
 	"sliplane-cli/internal/buildinfo"
 )
 
-// TestVersionWithoutConfig checks output and validation without credentials or valid preferences.
 func TestVersionWithoutConfig(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte("invalid JSON"), 0600); err != nil {

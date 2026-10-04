@@ -1,4 +1,3 @@
-// Tokens live in the environment, command invocation, or OS keychain, never config.
 package auth
 
 import (
@@ -54,7 +53,6 @@ func Save(credentialID, token string) error {
 	return nil
 }
 
-// Delete removes only the CLI's keychain entry and is safe to repeat.
 func Delete(credentialID string) error {
 	if credentialID == "" {
 		return nil
@@ -69,7 +67,6 @@ func Delete(credentialID string) error {
 	return nil
 }
 
-// Load retrieves one credential without applying environment or profile fallbacks.
 func Load(credentialID string) (string, error) {
 	return keyring.Get(service, credentialID)
 }

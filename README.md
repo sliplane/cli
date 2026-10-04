@@ -2,11 +2,6 @@
 
 CLI for sliplane.io
 
-> **Warning**: You can execute destructive commands against your deployments. Use with caution and always double check your commands before executing them.
-
-
-## Features
-
 ## Installation
 
 macOS and Linux (including WSL), on Intel/AMD x86_64 or ARM64. Run in bash or zsh:
@@ -41,5 +36,3 @@ with `--non-interactive`. Other shells receive manual PATH instructions.
 for manual installation. These commands require a published release.
 
 Maintainers: see [the release process](docs/releasing.md).
-
-## License

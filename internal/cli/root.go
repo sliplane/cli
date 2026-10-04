@@ -1,7 +1,7 @@
-// Commands share output preferences and resolve credentials only when calling the API.
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -26,10 +26,8 @@ type options struct {
 	catalogURL  string
 }
 
-// NewCommand constructs an independent command tree for each invocation.
 func NewCommand() *cobra.Command { return newCommand(api.BaseURL, presets.URL) }
 
-// newCommand accepts a local HTTP test server without exposing an endpoint override to users.
 func newCommand(baseURL, catalogURL string) *cobra.Command {
 	options := &options{baseURL: baseURL, catalogURL: catalogURL}
 	root := &cobra.Command{
@@ -49,7 +47,6 @@ func newCommand(baseURL, catalogURL string) *cobra.Command {
 	return root
 }
 
-// load applies file preferences unless an explicit flag overrides them.
 func (o *options) load(command *cobra.Command) error {
 	if o.configPath == "" {
 		path, err := config.DefaultPath()
@@ -97,7 +94,6 @@ func (o *options) load(command *cobra.Command) error {
 	return nil
 }
 
-// client resolves credentials without caching or persisting supplied tokens.
 func (o *options) client(command *cobra.Command) (*api.Client, string, error) {
 	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), o.credentialID())
 	if err != nil {
@@ -105,14 +101,9 @@ func (o *options) client(command *cobra.Command) (*api.Client, string, error) {
 	}
 	client := api.New(o.baseURL, token)
 	if o.profileName != "" {
-		identity, err := client.Me(command.Context())
-		if err != nil {
+		if err := o.verifyIdentity(command.Context(), client); err != nil {
 			return nil, "", err
 		}
-		if err := o.checkOrganization(identity); err != nil {
-			return nil, "", err
-		}
-		o.identity = &identity
 	}
 	return client, source, nil
 }
@@ -137,5 +128,17 @@ func (o *options) checkOrganization(identity api.Identity) error {
 	if exists && identity.OrganizationID != profile.OrganizationID {
 		return fmt.Errorf("token belongs to organization %q, but profile %q is bound to %q; select the matching profile or supply a token for this team", identity.OrganizationID, o.profileName, profile.OrganizationID)
 	}
+	return nil
+}
+
+func (o *options) verifyIdentity(ctx context.Context, client *api.Client) error {
+	identity, err := client.Me(ctx)
+	if err != nil {
+		return err
+	}
+	if err := o.checkOrganization(identity); err != nil {
+		return err
+	}
+	o.identity = &identity
 	return nil
 }

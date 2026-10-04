@@ -1,4 +1,3 @@
-// Download progress redraws one stderr line without affecting the command's result output.
 package cli
 
 import (
@@ -15,7 +14,6 @@ type downloadProgress struct {
 	lastTotal  int64
 }
 
-// update shows bytes and, when supplied by S3, the total and percentage.
 func (p *downloadProgress) update(written, total int64) error {
 	now := time.Now()
 	if total == p.lastTotal && written != total && now.Sub(p.lastUpdate) < progressInterval {
@@ -35,13 +33,11 @@ func (p *downloadProgress) update(written, total int64) error {
 	return err
 }
 
-// finish clears the transient line before the success receipt or error is printed.
 func (p *downloadProgress) finish() error {
 	_, err := fmt.Fprint(p.output, "\r\x1b[2K")
 	return err
 }
 
-// formatBytes uses binary units to keep progress readable for large objects.
 func formatBytes(size int64) string {
 	if size < 1024 {
 		return fmt.Sprintf("%d B", size)

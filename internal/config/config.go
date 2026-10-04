@@ -1,4 +1,3 @@
-// Config persists a small set of non-secret preferences as JSON.
 package config
 
 import (
@@ -28,7 +27,6 @@ type Profile struct {
 	Project        string            `json:"project,omitempty"`
 }
 
-// ValidateProfileName restricts names to portable shell-friendly labels.
 func ValidateProfileName(name string) error {
 	if name == "" || len(name) > 64 {
 		return errors.New("profile name must contain 1 to 64 letters, digits, hyphens, or underscores")
@@ -86,7 +84,6 @@ func validate(config Config) error {
 	return nil
 }
 
-// DefaultPath follows the operating system's user configuration directory.
 func DefaultPath() (string, error) {
 	directory, err := os.UserConfigDir()
 	if err != nil {
@@ -95,7 +92,6 @@ func DefaultPath() (string, error) {
 	return filepath.Join(directory, "sliplane", "config.json"), nil
 }
 
-// Load treats a missing file as defaults but rejects corrupt or unknown settings.
 func Load(path string) (Config, error) {
 	contents, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {

@@ -1,4 +1,3 @@
-// The usql PostgreSQL driver keeps its metadata support while honoring command cancellation.
 package cli
 
 import (
@@ -70,12 +69,10 @@ type postgresDialer struct {
 	ctx context.Context
 }
 
-// Dial opens a connection tied to the session lifetime.
 func (d postgresDialer) Dial(network, address string) (net.Conn, error) {
 	return d.DialContext(d.ctx, network, address)
 }
 
-// DialTimeout retains the driver's connection timeout.
 func (d postgresDialer) DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(d.ctx, timeout)
 	defer cancel()
@@ -102,7 +99,6 @@ type postgresSocket struct {
 	stop func() bool
 }
 
-// Close releases both the socket and its session cancellation callback.
 func (c *postgresSocket) Close() error {
 	c.stop()
 	return c.Conn.Close()

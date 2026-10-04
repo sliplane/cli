@@ -1,4 +1,3 @@
-// SSH sessions use a private temporary identity and the installed OpenSSH client.
 package cli
 
 import (
@@ -20,7 +19,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// sshCommand opens a shell without requiring a saved SSH key or a separate connect command.
 func (o *options) sshCommand() *cobra.Command {
 	var ttl time.Duration
 	var localForwards []string
@@ -81,7 +79,6 @@ func (o *options) sshCommand() *cobra.Command {
 	return command
 }
 
-// validateSSHConnection rejects missing details and values that are not SSH destinations.
 func validateSSHConnection(connection api.SSHConnection) error {
 	if connection.Port < 1 || connection.Port > 65535 || connection.Username == "" || strings.ContainsAny(connection.Username, "\x00 \t\r\n") {
 		return errors.New("API returned invalid SSH connection details")
@@ -100,7 +97,6 @@ func validateSSHConnection(connection api.SSHConnection) error {
 	return nil
 }
 
-// openSSH owns the local identity, remote grant, and connection for one shell or tunnel.
 func openSSH(command *cobra.Command, client *api.Client, service api.Service, ssh, keygen string, ttl time.Duration, sessionArguments []string) (result error) {
 	directory, err := os.MkdirTemp("", "slissh-")
 	if err != nil {
@@ -156,7 +152,6 @@ func openSSH(command *cobra.Command, client *api.Client, service api.Service, ss
 	return runSSHSession(command, ssh, append(arguments, sessionArguments...), connection.Host)
 }
 
-// generateSSHKey lets OpenSSH create its native private-key format inside a mode-0700 directory.
 func generateSSHKey(ctx context.Context, keygen, path string) (string, error) {
 	process := exec.CommandContext(ctx, keygen, "-q", "-t", "ed25519", "-N", "", "-C", "sliplane-cli", "-f", path)
 	if output, err := process.CombinedOutput(); err != nil {
@@ -245,7 +240,6 @@ func runSSHSession(command *cobra.Command, ssh string, arguments []string, host 
 	return nil
 }
 
-// closeSSHMaster also runs when authentication was interrupted after the control socket was created.
 func closeSSHMaster(ssh string, arguments []string, host string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

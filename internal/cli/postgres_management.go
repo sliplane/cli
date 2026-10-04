@@ -1,4 +1,3 @@
-// Database management resolves exact names or IDs and reports the state returned by the API.
 package cli
 
 import (
@@ -11,7 +10,6 @@ import (
 	"sliplane-cli/internal/api"
 )
 
-// postgresCreateCommand provisions a database with the base tier unless explicitly overridden.
 func (o *options) postgresCreateCommand() *cobra.Command {
 	var input api.CreatePostgresInput
 	command := &cobra.Command{
@@ -59,7 +57,6 @@ func (o *options) postgresCreateCommand() *cobra.Command {
 	return command
 }
 
-// postgresUpdateCommand constructs a sparse patch so unrelated settings and access rules survive updates.
 func (o *options) postgresUpdateCommand() *cobra.Command {
 	var name, instanceType string
 	var diskSize int
@@ -114,7 +111,6 @@ func (o *options) postgresUpdateCommand() *cobra.Command {
 	return command
 }
 
-// postgresDeleteCommand requires terminal confirmation or an explicit --yes before deleting data.
 func (o *options) postgresDeleteCommand() *cobra.Command {
 	var yes bool
 	command := &cobra.Command{
@@ -153,7 +149,6 @@ func (o *options) postgresDeleteCommand() *cobra.Command {
 	return command
 }
 
-// postgresLifecycleCommand shares name resolution and status output for the three lifecycle actions.
 func (o *options) postgresLifecycleCommand(action, description string) *cobra.Command {
 	return &cobra.Command{
 		Use: action + " <name-or-id>", Short: description + " (requires a read-write token)", Args: validateArguments,
@@ -176,7 +171,6 @@ func (o *options) postgresLifecycleCommand(action, description string) *cobra.Co
 	}
 }
 
-// postgresRotatePasswordCommand exposes refreshed credentials only for this explicit credential operation.
 func (o *options) postgresRotatePasswordCommand() *cobra.Command {
 	return &cobra.Command{
 		Use: "rotate-password <name-or-id>", Short: "Rotate the owner password and print it (requires a read-write token)", Args: validateArguments,

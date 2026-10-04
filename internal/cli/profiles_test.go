@@ -1,9 +1,6 @@
-// Profile tests exercise team selection, credential isolation, and local lifecycle changes.
 package cli
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,19 +17,6 @@ import (
 	"sliplane-cli/internal/config"
 )
 
-// runProfileCommand preserves one test's config across independent CLI invocations.
-func runProfileCommand(t *testing.T, serverURL, path string, args ...string) (string, string, error) {
-	t.Helper()
-	command := newCommand(serverURL, serverURL+"/presets")
-	var stdout, stderr bytes.Buffer
-	command.SetOut(&stdout)
-	command.SetErr(&stderr)
-	command.SetArgs(append([]string{"--config", path}, args...))
-	err := command.ExecuteContext(context.Background())
-	return stdout.String(), stderr.String(), err
-}
-
-// TestProfileLifecycle keeps credentials and project defaults isolated between two teams.
 func TestProfileLifecycle(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "")
 	t.Setenv("SLIPLANE_PROFILE", "")
@@ -142,7 +126,6 @@ func TestProfileLifecycle(t *testing.T) {
 	}
 }
 
-// TestProfileMismatchStopsResourceRequests guards both reads and writes against stale overrides.
 func TestProfileMismatchStopsResourceRequests(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_TOKEN", "personal-token")
@@ -195,7 +178,6 @@ func TestProfileMismatchStopsResourceRequests(t *testing.T) {
 	}
 }
 
-// TestLegacyLoginMigration keeps existing preferences and moves the old token into a bound profile.
 func TestLegacyLoginMigration(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	t.Setenv("SLIPLANE_TOKEN", "")
@@ -229,7 +211,6 @@ func TestLegacyLoginMigration(t *testing.T) {
 	}
 }
 
-// TestTokenOnlyCIAndExplicitSelection keep CI independent of local credentials and reject empty selectors.
 func TestTokenOnlyCIAndExplicitSelection(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "ci-token")
 	t.Setenv("SLIPLANE_PROFILE", "")
@@ -255,7 +236,6 @@ func TestTokenOnlyCIAndExplicitSelection(t *testing.T) {
 	}
 }
 
-// TestFailedProfileSaveRemovesNewCredential prevents orphaning a token when config cannot be saved.
 func TestFailedProfileSaveRemovesNewCredential(t *testing.T) {
 	keyring.MockInit()
 	parent := filepath.Join(t.TempDir(), "file")
