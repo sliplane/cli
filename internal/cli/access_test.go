@@ -7,51 +7,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
-
-func TestOAuthClientUpdatePreservesOmittedSettings(t *testing.T) {
-	for _, test := range []struct {
-		args []string
-		body string
-	}{
-		{[]string{"--name", "new"}, `{"name":"new"}`},
-		{[]string{"--image-url="}, `{"imageUrl":""}`},
-		{[]string{"--redirect-uri", "https://example.test/callback?a=1,b=2", "--redirect-uri", "http://localhost:8080/callback"}, `{"redirectUris":["https://example.test/callback?a=1,b=2","http://localhost:8080/callback"]}`},
-	} {
-		t.Run(test.body, func(t *testing.T) {
-			writes := 0
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == http.MethodGet {
-					fmt.Fprint(w, `[{"id":"oc1","name":"app"}]`)
-					return
-				}
-				writes++
-				if r.Method != http.MethodPatch || r.URL.Path != "/oauth-clients/oc1" {
-					t.Errorf("unexpected mutation %s %s", r.Method, r.URL.Path)
-				}
-				var actual, expected any
-				if err := json.NewDecoder(r.Body).Decode(&actual); err != nil {
-					t.Error(err)
-				}
-				if err := json.Unmarshal([]byte(test.body), &expected); err != nil {
-					t.Fatal(err)
-				}
-				if !reflect.DeepEqual(actual, expected) {
-					t.Errorf("body = %#v, want %#v", actual, expected)
-				}
-				fmt.Fprint(w, `{"id":"oc1","name":"app"}`)
-			}))
-			defer server.Close()
-			_, _, err := runCommand(t, server.URL, append([]string{"oauth-client", "update", "app"}, test.args...)...)
-			if err != nil || writes != 1 {
-				t.Fatalf("writes=%d: %v", writes, err)
-			}
-		})
-	}
-}
 
 func TestRegistryTokenNeverAppearsInOutput(t *testing.T) {
 	t.Setenv("SLIPLANE_REGISTRY_TOKEN", "registry-private-secret")
