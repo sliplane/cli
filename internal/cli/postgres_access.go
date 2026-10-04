@@ -93,7 +93,7 @@ func (o *options) ensurePostgresAccess(command *cobra.Command, client *api.Clien
 		return nil
 	}
 	source := netip.PrefixFrom(address, address.BitLen()).String()
-	blocked := fmt.Errorf("IP %s is not allowed for database %q; add %s in the dashboard or rerun in a terminal to approve a rule", address, database.Name, source)
+	blocked := fmt.Errorf("IP %s is not allowed for database %q; run sliplane postgres allowlist add %s %s or rerun in a terminal to approve a rule", address, database.Name, database.ID, source)
 	if !o.canPrompt(command) {
 		return blocked
 	}
@@ -116,6 +116,6 @@ func (o *options) ensurePostgresAccess(command *cobra.Command, client *api.Clien
 	if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
 		return fmt.Errorf("add PostgreSQL allowlist rule for %s: %w", source, err)
 	}
-	fmt.Fprintf(command.ErrOrStderr(), "Added allowlist rule %s. It remains until you remove it in the dashboard.\n", source)
+	fmt.Fprintf(command.ErrOrStderr(), "Added allowlist rule %s. Remove it with sliplane postgres allowlist remove %s %s.\n", source, database.ID, source)
 	return nil
 }

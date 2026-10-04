@@ -69,6 +69,10 @@ func (o *options) postgresCommand() *cobra.Command {
 		},
 	})
 	command.AddCommand(o.postgresConnectCommand(), o.postgresQueryCommand(),
+		o.postgresRestoreCommand(), o.postgresRestoreWindowCommand(), o.postgresLogsCommand(),
+		o.postgresQueryStatsCommand("slow-queries", "Show the latest slow query snapshot"),
+		o.postgresQueryStatsCommand("top-queries", "Show the latest queries ranked by call count"),
+		o.postgresConnectionsCommand(), o.postgresSizesCommand(), o.postgresAllowlistCommand(),
 		o.postgresCreateCommand(), o.postgresUpdateCommand(), o.postgresDeleteCommand(), o.postgresRotatePasswordCommand(),
 		o.postgresLifecycleCommand("restart", "Restart a database"),
 		o.postgresLifecycleCommand("pause", "Pause a database"),
