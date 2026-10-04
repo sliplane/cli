@@ -31,7 +31,10 @@ jobs:
           args: check
       - name: Build release archives without publishing
         if: runner.os == 'Linux'
-        run: goreleaser release --snapshot --clean
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: v2.15.1
+          args: release --snapshot --clean
       - name: Install the built release
         if: runner.os == 'Linux'
         run: SLIPLANE_TEST_RELEASE_DIR="$PWD/dist" go test ./scripts -run '^TestReleaseInstall$' -count=1
