@@ -14,10 +14,11 @@ import (
 )
 
 func (o *options) authCommand() *cobra.Command {
-	command := &cobra.Command{Use: "auth", Short: "Manage API token authentication"}
+	command := &cobra.Command{Use: "auth", Short: "Manage authentication"}
 	command.AddCommand(&cobra.Command{
-		Use: "login", Short: "Save a token for a profile", Args: validateArguments,
-		Example: "  sliplane auth login --profile work --token TOKEN",
+		Use: "login", Short: "Log in through your browser or save an API token", Args: validateArguments,
+		Long:    "Log in through a local browser using its active Sliplane team. Sign in to\nsliplane.io first. Browser tokens expire after 24 hours; run login again to renew.\nSupply --token or SLIPLANE_TOKEN to save an API token instead.",
+		Example: "  sliplane auth login\n  sliplane auth login --profile work --token TOKEN",
 		RunE:    func(command *cobra.Command, _ []string) error { return o.login(command) },
 	}, &cobra.Command{
 		Use: "status", Short: "Show the current profile, team, and token access", Args: validateArguments,
@@ -58,7 +59,7 @@ func (o *options) login(command *cobra.Command) error {
 			credentialID = profile.CredentialID
 		}
 	}
-	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), credentialID)
+	token, source, err := o.loginToken(command, credentialID)
 	if err != nil {
 		return err
 	}
@@ -78,6 +79,35 @@ func (o *options) login(command *cobra.Command) error {
 		}
 	}
 	return o.print(command, map[string]any{"profile": o.profileName, "stored": true, "identity": identity}, [][]string{{"Profile", o.profileName}, {"Organization", identity.OrganizationID}, {"Access", identity.TokenType}, {"Token saved to OS keychain."}})
+}
+
+// loginToken preserves explicit tokens and the one-time migration of legacy credentials.
+// Saved profile tokens are not reused: login must also renew expired browser access.
+func (o *options) loginToken(command *cobra.Command, credentialID string) (string, string, error) {
+	if command.Flags().Changed("token") || os.Getenv("SLIPLANE_TOKEN") != "" {
+		return auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), credentialID)
+	}
+	if credentialID == auth.LegacyCredentialID {
+		if token, source, err := auth.Resolve("", false, "", credentialID); err == nil {
+			return token, source, nil
+		}
+	}
+	client := auth.OAuthClient{
+		ID:               "oclient_dj5pznsma6kt",
+		AuthorizationURL: "https://api.sliplane.io/web/oauth/authorize",
+		TokenURL:         "https://api.sliplane.io/web/oauth/token",
+	}
+	token, err := client.Login(command.Context(), func(authorizationURL string) error {
+		fmt.Fprintln(command.ErrOrStderr(), "Opening Sliplane in your browser. Waiting for approval (up to 5 minutes); press Ctrl+C to cancel.")
+		if err := openBrowser(command.Context(), authorizationURL); err != nil {
+			if command.Context().Err() != nil {
+				return command.Context().Err()
+			}
+			fmt.Fprintf(command.ErrOrStderr(), "Could not open your browser. Open this URL on this computer:\n%s\n", authorizationURL)
+		}
+		return nil
+	})
+	return token, "browser", err
 }
 
 // saveLogin keeps each profile's keychain reference stable when its token is rotated.

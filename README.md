@@ -33,7 +33,8 @@ the `sliplane` binary in a directory on your PATH.
 
 ## Getting started
 
-1. Log in with your Sliplane API token:
+1. Sign in to [Sliplane](https://sliplane.io) in your browser, select your team,
+   then log in from a terminal on the same computer:
 
    ```sh
    sliplane auth login
@@ -53,6 +54,19 @@ the `sliplane` binary in a directory on your PATH.
 
 Use `sliplane --help` to explore commands, or append `--help` to any command
 for its options.
+
+Browser login grants full access to the browser's active team. The access token
+is stored in your OS keychain and expires after 24 hours. Run `sliplane auth login`
+again to renew it; automatic refresh is not included yet. If you cancel in the
+browser, press Ctrl+C in the terminal or wait for the five-minute timeout.
+
+For CI or a remote terminal, use `SLIPLANE_TOKEN` or `--token` with an API token.
+An explicit token takes precedence over browser login. You can save one with
+`sliplane auth login --token TOKEN`. Use `--profile NAME` for a separate team
+profile. Existing profiles stay bound to their team.
+
+`sliplane auth logout` removes the selected profile's local token; it does not
+revoke the token on the server.
 
 ## Project settings
 

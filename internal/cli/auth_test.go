@@ -1,16 +1,66 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
 	"sliplane-cli/internal/auth"
 	"sliplane-cli/internal/config"
 )
+
+func TestLoginTokenSelection(t *testing.T) {
+	for _, test := range []struct {
+		name, flag, environment, want, source string
+		flagSet                               bool
+	}{
+		{name: "flag wins", flag: "flag-token", flagSet: true, environment: "environment-token", want: "flag-token", source: "flag"},
+		{name: "environment wins", environment: "environment-token", want: "environment-token", source: "environment"},
+		{name: "saved profile requires browser", source: "browser"},
+		{name: "empty explicit token fails", flagSet: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("SLIPLANE_TOKEN", test.environment)
+			keyring.MockInit()
+			if err := auth.Save("credential_work", "old-token"); err != nil {
+				t.Fatal(err)
+			}
+			options := &options{}
+			command := &cobra.Command{}
+			command.Flags().StringVar(&options.token, "token", "", "")
+			if test.flagSet {
+				if err := command.Flags().Set("token", test.flag); err != nil {
+					t.Fatal(err)
+				}
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			command.SetContext(ctx)
+			token, source, err := options.loginToken(command, "credential_work")
+			if token != test.want || source != test.source {
+				t.Fatalf("got token %q from %q, want %q from %q", token, source, test.want, test.source)
+			}
+			if test.source == "browser" && !errors.Is(err, context.Canceled) {
+				t.Fatalf("browser login ignored cancellation: %v", err)
+			}
+			if test.want != "" && err != nil {
+				t.Fatal(err)
+			}
+			if test.flagSet && test.flag == "" && err == nil {
+				t.Fatal("empty explicit token fell back to another credential")
+			}
+			if saved, err := auth.Load("credential_work"); err != nil || saved != "old-token" {
+				t.Fatal("selecting credentials changed the saved token", err)
+			}
+		})
+	}
+}
 
 func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	t.Setenv("SLIPLANE_TOKEN", "")
