@@ -24,11 +24,6 @@ CI runs vet and race tests on Linux and macOS. It also builds all release target
 and runs the release installer smoke test on Linux. Cross-compilation verifies
 that every target builds; it does not execute every target's binary.
 
-Current release blocker: the existing macOS race suite reports a race in
-`github.com/muesli/cancelreader` during `TestDeployInteractiveDestination` in
-`internal/cli/deploy_prompt_test.go`. Resolve this before publishing; CI retains
-the race check and does not suppress the failure.
-
 ## Create a release
 
 1. Merge the release changes into `main` and ensure CI passes.

@@ -1,3 +1,4 @@
+// Prompt helpers share command I/O and cancellation; Execute owns process signals.
 package cli
 
 import (
@@ -9,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -16,15 +18,52 @@ import (
 
 // runPrompt binds a terminal field to the command and treats Ctrl+C as cancellation.
 func runPrompt(command *cobra.Command, field huh.Field) error {
+	if err := command.Context().Err(); err != nil {
+		return err
+	}
 	form := huh.NewForm(huh.NewGroup(field)).WithInput(command.InOrStdin()).WithOutput(command.ErrOrStderr())
-	err := form.RunWithContext(command.Context())
+	var err error
+	if os.Getenv("TERM") == "dumb" {
+		err = form.RunWithContext(command.Context())
+	} else {
+		form.SubmitCmd = tea.Quit
+		form.CancelCmd = tea.Quit
+		program := tea.NewProgram(promptModel{form},
+			tea.WithInput(command.InOrStdin()), tea.WithOutput(command.ErrOrStderr()), tea.WithoutSignalHandler())
+		// Huh's RunWithContext force-kills on cancellation. Quit instead so the input reader is joined.
+		stopCancellation := context.AfterFunc(command.Context(), program.Quit)
+		defer stopCancellation()
+		_, err = program.Run()
+	}
 	if command.Context().Err() != nil {
 		return command.Context().Err()
 	}
-	if errors.Is(err, huh.ErrUserAborted) {
+	if form.State == huh.StateAborted || errors.Is(err, huh.ErrUserAborted) {
 		return context.Canceled
 	}
 	return err
+}
+
+// promptModel adapts Huh's string view to Bubble Tea while runPrompt owns cancellation.
+type promptModel struct {
+	form huh.Model
+}
+
+// Init initializes the embedded form's fields and layout.
+func (model promptModel) Init() tea.Cmd { return model.form.Init() }
+
+// Update retains the form model returned by Huh as fields change.
+func (model promptModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+	form, command := model.form.Update(message)
+	return promptModel{form}, command
+}
+
+// View preserves Huh's focus reporting and converts its rendered content to a terminal view.
+func (model promptModel) View() tea.View {
+	var view tea.View
+	view.ReportFocus = true
+	view.SetContent(model.form.View())
+	return view
 }
 
 // canPrompt keeps redirected commands and JSON output noninteractive.
