@@ -39,11 +39,18 @@ func (o *options) serviceEnvCommand() *cobra.Command {
 	})
 	var secret bool
 	set := &cobra.Command{
-		Use: "set <service> <KEY=value>", Short: "Set an environment variable; use --secret to hide its value", Args: validateArguments,
-		Long:    "Set one environment variable without replacing the others. Pass KEY=value, or KEY to read the local environment. Values are non-secret by default; use --secret for sensitive values.",
-		Example: "  sliplane service env set api DATABASE_URL --secret\n  sliplane service env set api LOG_LEVEL=info",
+		Use: "set <service> <key> [value]", Short: "Set an environment variable; use --secret to hide its value", Args: validateArguments,
+		Long:    "Set one environment variable without replacing the others. Pass KEY=value or KEY VALUE, or KEY alone to read the local environment. Values are non-secret by default; use --secret for sensitive values.",
+		Example: "  sliplane service env set api DATABASE_URL --secret\n  sliplane service env set api LOG_LEVEL=info\n  sliplane service env set api LOG_LEVEL info",
 		RunE: func(command *cobra.Command, args []string) error {
-			entry, err := parseEnvironmentVariable(args[1])
+			value := args[1]
+			if len(args) == 3 {
+				if strings.Contains(value, "=") {
+					return errors.New("use KEY=value or KEY VALUE, not both")
+				}
+				value += "=" + args[2]
+			}
+			entry, err := parseEnvironmentVariable(value)
 			if err != nil {
 				return err
 			}

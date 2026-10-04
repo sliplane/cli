@@ -18,6 +18,9 @@ func TestServiceConfigurationRequests(t *testing.T) {
 	}{
 		{"explicit secret", "PUT", "/projects/p1/services/s1/env/TOKEN", `{"value":"sensitive","secret":true}`, `{"key":"TOKEN","value":"sensitive","secret":true}`, []string{"service", "env", "set", "api", "TOKEN=sensitive", "--secret"}},
 		{"non-secret default", "PUT", "/projects/p1/services/s1/env/LEVEL", `{"value":"debug","secret":false}`, `{}`, []string{"service", "env", "set", "api", "LEVEL=debug"}},
+		{"separate value", "PUT", "/projects/p1/services/s1/env/LEVEL", `{"value":"debug","secret":false}`, `{}`, []string{"service", "env", "set", "api", "LEVEL", "debug"}},
+		{"literal separate secret", "PUT", "/projects/p1/services/s1/env/TOKEN", `{"value":"sensitive = value","secret":true}`, `{}`, []string{"service", "env", "set", "api", "TOKEN", "sensitive = value", "--secret"}},
+		{"empty separate value", "PUT", "/projects/p1/services/s1/env/EMPTY", `{"value":"","secret":false}`, `{}`, []string{"service", "env", "set", "api", "EMPTY", ""}},
 		{"delete variable", "DELETE", "/projects/p1/services/s1/env/OLD", "", "", []string{"service", "env", "delete", "api", "OLD"}},
 		{"remove domain by hostname", "DELETE", "/projects/p1/services/s1/domains/d1", "", "", []string{"service", "domain", "remove", "api", "app.example.com"}},
 		{"attach explicit mount", "POST", "/projects/p1/services/s1/volumes", `{"id":"v1","mountPath":"/data"}`, `{"id":"v1","name":"data","mountPath":"/data"}`, []string{"service", "volume", "attach", "api", "data", "/data"}},
@@ -84,6 +87,13 @@ func TestServiceConfigurationRequests(t *testing.T) {
 				t.Fatal("secret echoed in result")
 			}
 		})
+	}
+}
+
+func TestServiceEnvironmentRejectsMixedValueSyntax(t *testing.T) {
+	_, _, err := runCommand(t, "http://127.0.0.1:1", "service", "env", "set", "api", "TOKEN=sensitive", "extra")
+	if err == nil || err.Error() != "use KEY=value or KEY VALUE, not both" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
