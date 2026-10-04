@@ -16,11 +16,11 @@ func TestServiceConfigurationRequests(t *testing.T) {
 		name, method, path, body, response string
 		args                               []string
 	}{
-		{"secret default", "PUT", "/projects/p1/services/s1/env/TOKEN", `{"value":"sensitive","secret":true}`, `{"key":"TOKEN","value":"sensitive","secret":true}`, []string{"service", "env", "set", "api", "TOKEN=sensitive"}},
-		{"public variable", "PUT", "/projects/p1/services/s1/env/LEVEL", `{"value":"debug","secret":false}`, `{}`, []string{"service", "env", "set", "api", "LEVEL=debug", "--public"}},
+		{"explicit secret", "PUT", "/projects/p1/services/s1/env/TOKEN", `{"value":"sensitive","secret":true}`, `{"key":"TOKEN","value":"sensitive","secret":true}`, []string{"service", "env", "set", "api", "TOKEN=sensitive", "--secret"}},
+		{"non-secret default", "PUT", "/projects/p1/services/s1/env/LEVEL", `{"value":"debug","secret":false}`, `{}`, []string{"service", "env", "set", "api", "LEVEL=debug"}},
 		{"delete variable", "DELETE", "/projects/p1/services/s1/env/OLD", "", "", []string{"service", "env", "delete", "api", "OLD"}},
 		{"remove domain by hostname", "DELETE", "/projects/p1/services/s1/domains/d1", "", "", []string{"service", "domain", "remove", "api", "app.example.com"}},
-		{"attach default mount", "POST", "/projects/p1/services/s1/volumes", `{"id":"v1","mountPath":"/data"}`, `{"id":"v1","name":"data","mountPath":"/data"}`, []string{"service", "volume", "attach", "api", "data"}},
+		{"attach explicit mount", "POST", "/projects/p1/services/s1/volumes", `{"id":"v1","mountPath":"/data"}`, `{"id":"v1","name":"data","mountPath":"/data"}`, []string{"service", "volume", "attach", "api", "data", "/data"}},
 		{"detach by name", "DELETE", "/projects/p1/services/s1/volumes/v1", "", "", []string{"service", "volume", "detach", "api", "data"}},
 		{"change mount", "PATCH", "/projects/p1/services/s1/volumes/v1", `{"mountPath":"/new"}`, `{"id":"v1","name":"data","mountPath":"/new"}`, []string{"service", "volume", "update", "api", "data", "/new"}},
 		{"single server default", "POST", "/servers/server1/volumes", `{"name":"backups"}`, `{"id":"v2","name":"backups"}`, []string{"server", "volume", "create", "backups"}},

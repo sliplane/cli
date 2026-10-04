@@ -37,17 +37,17 @@ func (o *options) serviceEnvCommand() *cobra.Command {
 			return o.print(command, entries, rows)
 		},
 	})
-	var public bool
+	var secret bool
 	set := &cobra.Command{
-		Use: "set <service> <KEY=value>", Short: "Set a secret variable; use --public for a non-secret value", Args: validateArguments,
-		Long:    "Set one environment variable without replacing the others. Pass KEY=value, or KEY to read the local environment. Values are secret by default.",
-		Example: "  sliplane service env set api DATABASE_URL\n  sliplane service env set api LOG_LEVEL=info --public",
+		Use: "set <service> <KEY=value>", Short: "Set an environment variable; use --secret to hide its value", Args: validateArguments,
+		Long:    "Set one environment variable without replacing the others. Pass KEY=value, or KEY to read the local environment. Values are non-secret by default; use --secret for sensitive values.",
+		Example: "  sliplane service env set api DATABASE_URL --secret\n  sliplane service env set api LOG_LEVEL=info",
 		RunE: func(command *cobra.Command, args []string) error {
 			entry, err := parseEnvironmentVariable(args[1])
 			if err != nil {
 				return err
 			}
-			entry.Secret = !public
+			entry.Secret = secret
 			client, _, err := o.client(command)
 			if err != nil {
 				return err
@@ -62,7 +62,7 @@ func (o *options) serviceEnvCommand() *cobra.Command {
 			return o.print(command, map[string]any{"key": entry.Key, "secret": entry.Secret, "updated": true}, [][]string{{"Updated", entry.Key}, {"Secret", strconv.FormatBool(entry.Secret)}})
 		},
 	}
-	set.Flags().BoolVar(&public, "public", false, "Store a non-secret value")
+	set.Flags().BoolVar(&secret, "secret", false, "Store a secret value")
 	command.AddCommand(set, &cobra.Command{
 		Use: "delete <service> <key>", Short: "Delete an environment variable", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {

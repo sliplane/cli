@@ -152,7 +152,7 @@ func (o *options) serviceVolumeCommand() *cobra.Command {
 		},
 	})
 	for _, action := range []struct{ use, short string }{
-		{"attach <service> <volume> [mount-path]", "Attach a volume and redeploy (default mount: /data)"},
+		{"attach <service> <volume> <mount-path>", "Attach a volume at the given path and redeploy"},
 		{"detach <service> <volume>", "Detach a volume and redeploy; keep its data on the server"},
 		{"update <service> <volume> <mount-path>", "Change a volume's mount path and redeploy"},
 	} {
@@ -162,12 +162,12 @@ func (o *options) serviceVolumeCommand() *cobra.Command {
 }
 
 func (o *options) changeServiceVolume(command *cobra.Command, args []string) error {
-	mountPath := "/data"
-	if len(args) > 2 {
+	mountPath := ""
+	if command.Name() != "detach" {
 		mountPath = args[2]
-	}
-	if !strings.HasPrefix(mountPath, "/") {
-		return errors.New("mount path must be an absolute container path")
+		if !strings.HasPrefix(mountPath, "/") {
+			return errors.New("mount path must be an absolute container path")
+		}
 	}
 	client, _, err := o.client(command)
 	if err != nil {

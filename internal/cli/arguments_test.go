@@ -18,6 +18,7 @@ func TestArgumentErrors(t *testing.T) {
 		{"download key", []string{"s3", "download", "assets"}, "missing required argument: key", "sliplane s3 download <bucket> <key> [file]"},
 		{"config value", []string{"config", "set", "output"}, "missing required argument: value", "sliplane config set <project|output> <value>"},
 		{"nested logs", []string{"service", "logs"}, "missing required argument: name or id", "sliplane service logs <name-or-id>"},
+		{"volume mount path", []string{"service", "volume", "attach", "api", "data"}, "missing required argument: mount path", "sliplane service volume attach <service> <volume> <mount-path>"},
 		{"deploy shortcut", []string{"deploy"}, "missing required argument: preset", "sliplane deploy <preset>"},
 		{"extra name", []string{"s3", "create", "my", "bucket"}, "too many arguments; if a value contains spaces, wrap it in quotes", "sliplane s3 create <bucket-name>"},
 		{"extra optional value", []string{"s3", "ls", "assets", "prefix", "extra"}, "too many arguments", "sliplane s3 list [bucket] [prefix]"},
