@@ -160,7 +160,7 @@ func TestCursorOverlap(t *testing.T) {
 
 func TestConfigOverrides(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.json")
-	if err := config.Save(path, config.Config{Output: "json", Project: "default"}); err != nil {
+	if err := config.Save(path, config.Config{Output: "json"}); err != nil {
 		t.Fatal(err)
 	}
 	for _, test := range []struct {

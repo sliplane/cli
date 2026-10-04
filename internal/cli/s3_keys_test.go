@@ -19,7 +19,7 @@ func TestS3KeyLifecycle(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
 	configPath := filepath.Join(t.TempDir(), "config.json")
-	preferences := config.Config{Version: 1, ActiveProfile: "work", Profiles: map[string]config.Profile{
+	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{
 		"work": {OrganizationID: "org_work", CredentialID: "work-key", S3Credentials: map[string]string{"sb_one": "s3_saved", "sb_other": "s3_other"}},
 	}}
 	if err := config.Save(configPath, preferences); err != nil {
@@ -161,7 +161,7 @@ func TestS3KeyDeleteResolution(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
 	configPath := filepath.Join(t.TempDir(), "config.json")
-	preferences := config.Config{Version: 1, ActiveProfile: "work", Profiles: map[string]config.Profile{
+	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{
 		"work": {OrganizationID: "org", CredentialID: "work-key", S3Credentials: map[string]string{"sb_one": "s3_saved"}},
 	}}
 	if err := config.Save(configPath, preferences); err != nil {
