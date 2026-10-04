@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,7 +14,7 @@ func (o *options) serviceUpdateCommand() *cobra.Command {
 	var name, healthcheck, cmd string
 	command := &cobra.Command{
 		Use: "update <name-or-id>", Short: "Update service settings (requires a read-write token)", Args: validateArguments,
-		Long:    "Update the name, health check path, or command override. Only supplied fields are changed.\nUse --cmd='' to remove the command override. Use service redeploy to deploy an existing service,\noptionally with a new image tag. Check service show and logs before reporting readiness.",
+		Long:    "Update service settings or deployment configuration. Only supplied fields are changed.\nUse --cmd='' to remove the command override. Use service redeploy to deploy an existing service,\noptionally with a new image tag. Deployment type cannot be changed. Check service show and logs before reporting readiness.",
 		Example: "  sliplane service update api --project production --healthcheck /health\n  sliplane service update api --name backend --cmd='npm start'",
 		RunE: func(command *cobra.Command, args []string) error {
 			input := api.UpdateServiceInput{}
@@ -32,8 +33,14 @@ func (o *options) serviceUpdateCommand() *cobra.Command {
 			if command.Flags().Changed("cmd") {
 				input.Cmd = &cmd
 			}
-			if input.Name == nil && input.Healthcheck == nil && input.Cmd == nil {
-				return errors.New("provide --name, --healthcheck, or --cmd")
+			deploymentChanged := false
+			for _, flag := range deploymentFlags {
+				if command.Flags().Changed(flag) {
+					deploymentChanged = true
+				}
+			}
+			if input.Name == nil && input.Healthcheck == nil && input.Cmd == nil && !deploymentChanged {
+				return errors.New("provide --name, --healthcheck, --cmd, or a deployment flag")
 			}
 			client, _, err := o.client(command)
 			if err != nil {
@@ -42,6 +49,16 @@ func (o *options) serviceUpdateCommand() *cobra.Command {
 			service, err := o.resolveService(command.Context(), client, args[0])
 			if err != nil {
 				return err
+			}
+			if deploymentChanged {
+				service, err = client.Service(command.Context(), service.ProjectID, service.ID)
+				if err != nil {
+					return err
+				}
+				input.Deployment, err = updatedDeployment(command, service.Deployment)
+				if err != nil {
+					return err
+				}
 			}
 			service, err = client.UpdateService(command.Context(), service.ProjectID, service.ID, input)
 			if err != nil {
@@ -53,6 +70,7 @@ func (o *options) serviceUpdateCommand() *cobra.Command {
 	command.Flags().StringVar(&name, "name", "", "New service name")
 	command.Flags().StringVar(&healthcheck, "healthcheck", "", "HTTP health check path (e.g. /health)")
 	command.Flags().StringVar(&cmd, "cmd", "", "Command override (empty removes the override)")
+	addDeploymentUpdateFlags(command)
 	return command
 }
 
@@ -149,5 +167,21 @@ func (o *options) printServiceAction(command *cobra.Command, service api.Service
 }
 
 func (o *options) printService(command *cobra.Command, service api.Service) error {
-	return o.print(command, service, [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}})
+	rows := [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}}
+	if len(service.Network) > 0 {
+		var network api.ServiceNetworkDetails
+		if err := json.Unmarshal(service.Network, &network); err != nil {
+			return err
+		}
+		if network.ManagedDomain != "" {
+			rows = append(rows, []string{"Managed domain", network.ManagedDomain})
+		}
+		if network.InternalDomain != "" {
+			rows = append(rows, []string{"Internal domain", network.InternalDomain})
+		}
+		for _, domain := range network.CustomDomains {
+			rows = append(rows, []string{"Custom domain", domain.Domain + " (" + domain.Status + ")"})
+		}
+	}
+	return o.print(command, service, rows)
 }
