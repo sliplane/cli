@@ -43,7 +43,7 @@ func newCommand(baseURL, catalogURL string) *cobra.Command {
 	root.PersistentFlags().StringVarP(&options.output, "output", "o", "text", "Output format: text or json (JSON Lines when following logs)")
 	root.PersistentFlags().StringVarP(&options.project, "project", "p", "", "Project name or ID (overrides config default)")
 	root.PersistentFlags().StringVar(&options.configPath, "config", "", "Config file (default: OS user config directory/sliplane/config.json)")
-	root.AddCommand(options.versionCommand(), options.agentCommand(), options.authCommand(), options.profileCommand(), options.configCommand(), options.projectCommand(), options.serverCommand(), options.serviceCommand(), options.s3Command(), options.postgresCommand(), options.logsCommand(), options.deployCommand(), options.presetCommand(), options.sshCommand())
+	root.AddCommand(options.versionCommand(), options.agentCommand(), options.authCommand(), options.profileCommand(), options.configCommand(), options.projectCommand(), options.serverCommand(), options.serviceCommand(), options.s3Command(), options.postgresCommand(), options.logsCommand(), options.deployCommand(), options.presetCommand(), options.sshCommand(), options.registryCommand(), options.sshKeyCommand())
 	return root
 }
 
