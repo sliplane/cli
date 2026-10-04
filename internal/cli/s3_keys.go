@@ -20,7 +20,7 @@ func (o *options) s3KeyCommand() *cobra.Command {
 }
 
 func (o *options) s3KeyListCommand() *cobra.Command {
-	return &cobra.Command{Use: "list <bucket>", Short: "List bucket access keys", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "list <bucket>", Aliases: []string{"ls"}, Short: "List bucket access keys", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
 		client, bucket, err := o.s3Access(command, args[0])
 		if err != nil {
 			return err

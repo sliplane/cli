@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+// TestListAliases keeps ls interchangeable with list throughout the command tree.
+func TestListAliases(t *testing.T) {
+	commands := NewCommand().Commands()
+	for len(commands) > 0 {
+		command := commands[0]
+		commands = append(commands[1:], command.Commands()...)
+		if command.Name() != "list" {
+			continue
+		}
+		t.Run(command.CommandPath(), func(t *testing.T) {
+			resolved, remaining, err := command.Parent().Find([]string{"ls"})
+			if err != nil || resolved != command || len(remaining) != 0 {
+				t.Fatalf("ls did not resolve to %s: command=%v remaining=%v error=%v", command.CommandPath(), resolved, remaining, err)
+			}
+		})
+	}
+}
+
 func TestExpandedLists(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	useBerlinTime(t)

@@ -16,7 +16,7 @@ import (
 
 func (o *options) presetCommand() *cobra.Command {
 	command := &cobra.Command{Use: "preset", Short: "Browse the dashboard preset catalog"}
-	command.AddCommand(&cobra.Command{Use: "list", Short: "List available service presets", Args: validateArguments,
+	command.AddCommand(&cobra.Command{Use: "list", Aliases: []string{"ls"}, Short: "List available service presets", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			catalog, err := presets.Fetch(command.Context(), o.catalogURL)
 			if err != nil {
