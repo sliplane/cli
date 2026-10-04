@@ -1,38 +1,85 @@
 # Sliplane CLI
 
-CLI for sliplane.io
+A command-line interface for [Sliplane](https://sliplane.io). Deploy and manage
+services, servers, S3 buckets, and PostgreSQL databases from your terminal.
 
 ## Installation
 
-macOS and Linux (including WSL), on Intel/AMD x86_64 or ARM64. Run in bash or zsh:
+### Install script
+
+For macOS, Linux, and WSL on x86_64 or ARM64. Run in bash or zsh:
 
 ```sh
 curl -fsSL https://github.com/sliplane/cli/releases/latest/download/install.sh | sh -s -- --setup-path && \
   export PATH="$HOME/.sliplane/bin:$PATH"
 ```
 
-The installer verifies the download and checks that the executable runs, then
-installs to `~/.sliplane/bin` without sudo. The command automatically configures PATH for
-this terminal and future bash/zsh sessions, without prompting. Then log in:
+Installs to `~/.sliplane/bin` and sets up PATH for your current and future
+terminals. Run the same command again to update.
 
-```sh
-sliplane auth login
-```
-
-Run the installer again to update or repair your installation. An identical,
-executable installation is left unchanged. To install a specific release, use
-its version in both the URL and argument (replace `0.1.0` with a published version):
+To install a specific version, replace `0.1.0` in both places with a published
+release:
 
 ```sh
 curl -fsSL https://github.com/sliplane/cli/releases/download/v0.1.0/install.sh | sh -s -- 0.1.0 --setup-path && \
   export PATH="$HOME/.sliplane/bin:$PATH"
 ```
 
-Set `SLIPLANE_INSTALL_DIR` on the `sh` command to choose another directory,
-and use that directory in the `export PATH` line too.
-For CI or installation without shell profile changes, replace `--setup-path`
-with `--non-interactive`. Other shells receive manual PATH instructions.
-[Release archives](https://github.com/sliplane/cli/releases) are also available
-for manual installation. These commands require a published release.
+### Download from GitHub
 
-Maintainers: see [the release process](docs/releasing.md).
+Download the archive for your platform from the
+[Releases page](https://github.com/sliplane/cli/releases), extract it, and place
+the `sliplane` binary in a directory on your PATH.
+
+## Getting started
+
+1. Log in with your Sliplane API token:
+
+   ```sh
+   sliplane auth login
+   ```
+
+2. List your services:
+
+   ```sh
+   sliplane service list
+   ```
+
+3. Inspect a service by name or ID:
+
+   ```sh
+   sliplane service show my-service
+   ```
+
+Use `sliplane --help` to explore commands, or append `--help` to any command
+for its options.
+
+## Project settings
+
+Save a default project for your current profile:
+
+```sh
+sliplane config set project my-project
+```
+
+Override it for a single command with `--project`:
+
+```sh
+sliplane service list --project another-project
+```
+
+## Building from source
+
+With Go installed (see [go.mod](go.mod) for the required version):
+
+```sh
+make build
+./bin/sliplane --help
+```
+
+Run checks with `make check`.
+
+## Releases
+
+Tagged releases are built with GoReleaser and published through GitHub Releases.
+See [the release process](docs/releasing.md) for maintainer instructions.
