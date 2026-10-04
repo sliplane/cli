@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 )
@@ -53,11 +54,12 @@ func (c *Client) CreateService(ctx context.Context, projectID string, input Crea
 	return service, err
 }
 
-// UpdateServiceInput leaves deployment, environment, networking, and mounts untouched.
+// UpdateServiceInput changes only the supplied service settings.
 type UpdateServiceInput struct {
-	Name        *string `json:"name,omitempty"`
-	Healthcheck *string `json:"healthcheck,omitempty"`
-	Cmd         *string `json:"cmd,omitempty"`
+	Deployment  map[string]json.RawMessage `json:"deployment,omitempty"`
+	Name        *string                    `json:"name,omitempty"`
+	Healthcheck *string                    `json:"healthcheck,omitempty"`
+	Cmd         *string                    `json:"cmd,omitempty"`
 }
 
 func (c *Client) UpdateService(ctx context.Context, projectID, serviceID string, input UpdateServiceInput) (Service, error) {

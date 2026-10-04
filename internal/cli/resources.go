@@ -102,6 +102,7 @@ func (o *options) serverCommand() *cobra.Command {
 		},
 	}
 	list.Flags().BoolVarP(&all, "all", "a", false, "Show additional columns (does not change which resources are listed)")
+	command.AddCommand(o.serverVolumeCommand(), o.metricsCommand("server"))
 	command.AddCommand(list, &cobra.Command{
 		Use: "show <name-or-id>", Short: "Show a server", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
@@ -195,6 +196,7 @@ func (o *options) serviceCommand() *cobra.Command {
 			return o.printService(command, service)
 		},
 	}, o.logsCommand(), o.deployCommand(), o.serviceCreateCommand(), o.serviceUpdateCommand(), o.serviceRedeployCommand(), o.serviceDeleteCommand(),
+		o.serviceEnvCommand(), o.serviceDomainCommand(), o.serviceVolumeCommand(), o.metricsCommand("service"), o.serviceEventsCommand(),
 		o.serviceLifecycleCommand("pause", "Pause a service"), o.serviceLifecycleCommand("unpause", "Unpause a service"))
 	return command
 }
