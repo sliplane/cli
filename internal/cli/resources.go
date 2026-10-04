@@ -11,7 +11,7 @@ import (
 
 func (o *options) projectCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "project", Short: "List, inspect, and create projects"}
+	command := &cobra.Command{Use: "project", Short: "Manage projects"}
 	list := &cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List all projects", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
@@ -69,12 +69,13 @@ func (o *options) projectCommand() *cobra.Command {
 			return o.print(command, project, [][]string{{"Name", project.Name}, {"ID", project.ID}})
 		},
 	})
+	command.AddCommand(o.projectRenameCommand(), o.projectDeleteCommand())
 	return command
 }
 
 func (o *options) serverCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "server", Short: "List and inspect servers"}
+	command := &cobra.Command{Use: "server", Short: "Manage servers"}
 	list := &cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List all servers", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
@@ -110,25 +111,18 @@ func (o *options) serverCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			servers, err := client.Servers(command.Context())
+			server, err := resolveServer(command.Context(), client, args[0])
 			if err != nil {
 				return err
 			}
-			choices := make([]choice, len(servers))
-			for index, server := range servers {
-				choices[index] = choice{server.ID, server.Name}
-			}
-			index, err := resolve("server", args[0], choices)
+			server, err = client.Server(command.Context(), server.ID)
 			if err != nil {
 				return err
 			}
-			server, err := client.Server(command.Context(), servers[index].ID)
-			if err != nil {
-				return err
-			}
-			return o.print(command, server, [][]string{{"Name", server.Name}, {"ID", server.ID}, {"Status", server.Status}, {"Type", server.InstanceType}, {"Location", server.Location}, {"IPv4", server.IPv4}, {"IPv6", server.IPv6}})
+			return o.printServer(command, server)
 		},
 	})
+	command.AddCommand(o.serverCreateCommand(), o.serverScaleCommand(), o.serverDiskCommand(), o.serverDeleteCommand())
 	return command
 }
 
