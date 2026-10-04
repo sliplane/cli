@@ -14,7 +14,7 @@ func (o *options) postgresCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "postgres", Short: "Manage and connect to PostgreSQL databases"}
 	list := &cobra.Command{
-		Use: "list", Short: "List PostgreSQL databases", Args: validateArguments,
+		Use: "list", Aliases: []string{"ls"}, Short: "List PostgreSQL databases", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
 			if err != nil {

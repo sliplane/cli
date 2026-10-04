@@ -13,7 +13,7 @@ func (o *options) projectCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "project", Short: "List, inspect, and create projects"}
 	list := &cobra.Command{
-		Use: "list", Short: "List all projects", Args: validateArguments,
+		Use: "list", Aliases: []string{"ls"}, Short: "List all projects", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
 			if err != nil {
@@ -76,7 +76,7 @@ func (o *options) serverCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "server", Short: "List and inspect servers"}
 	list := &cobra.Command{
-		Use: "list", Short: "List all servers", Args: validateArguments,
+		Use: "list", Aliases: []string{"ls"}, Short: "List all servers", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
 			if err != nil {
@@ -135,7 +135,7 @@ func (o *options) serviceCommand() *cobra.Command {
 	var all bool
 	command := &cobra.Command{Use: "service", Short: "Inspect, deploy, and manage services"}
 	list := &cobra.Command{
-		Use: "list", Short: "List services across projects (or choose --project)", Args: validateArguments,
+		Use: "list", Aliases: []string{"ls"}, Short: "List services across projects (or choose --project)", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)
 			if err != nil {
