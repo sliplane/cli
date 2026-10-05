@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"sliplane-cli/internal/api"
 )
 
 func TestServiceManagementRequests(t *testing.T) {
@@ -202,5 +204,27 @@ func TestServiceManagementFailures(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestServiceDetailRows(t *testing.T) {
+	for _, test := range []struct {
+		name                string
+		deployment, network string
+		want                [][]string
+	}{
+		{"private", `{"url":"docker.io/library/nginx:latest"}`, `{"public":false,"internalDomain":"nginx.internal"}`, [][]string{{"Image", "docker.io/library/nginx:latest"}, {"Access", "private"}, {"Internal", "nginx.internal"}}},
+		{"HTTP", `{"url":"docker.io/library/nginx:latest"}`, `{"public":true,"protocol":"http","managedDomain":"nginx.sliplane.app","internalDomain":"nginx.internal"}`, [][]string{{"Image", "docker.io/library/nginx:latest"}, {"Access", "public HTTP"}, {"URL", "https://nginx.sliplane.app"}, {"Internal", "nginx.internal"}}},
+		{"TCP", `{}`, `{"public":true,"protocol":"tcp","managedDomain":"db.sliplane.app","internalDomain":"db.internal"}`, [][]string{{"Access", "public TCP"}, {"Hostname", "db.sliplane.app"}, {"Internal", "db.internal"}}},
+		{"UDP", `{}`, `{"public":true,"protocol":"udp","managedDomain":"game.sliplane.app"}`, [][]string{{"Access", "public UDP"}, {"Hostname", "game.sliplane.app"}}},
+		{"repository", `{"url":"https://github.com/acme/api","branch":"release"}`, `{"public":false,"internalDomain":"api.internal"}`, [][]string{{"Repository", "https://github.com/acme/api"}, {"Branch", "release"}, {"Access", "private"}, {"Internal", "api.internal"}}},
+		{"unassigned domain", `{}`, `{"public":true,"protocol":"tcp"}`, [][]string{{"Access", "public TCP"}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			rows, err := serviceDetailRows(api.Service{Deployment: json.RawMessage(test.deployment), Network: json.RawMessage(test.network)})
+			if err != nil || !reflect.DeepEqual(rows, test.want) {
+				t.Fatalf("details = %v, error = %v; want %v", rows, err, test.want)
+			}
+		})
 	}
 }

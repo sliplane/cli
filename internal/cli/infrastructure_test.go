@@ -16,8 +16,8 @@ func TestInfrastructureRequests(t *testing.T) {
 		args                         []string
 		method, path, body, response string
 	}{
-		{"server defaults", []string{"server", "create", "web"}, "POST", "/servers", `{"name":"web","instanceType":"starter","location":"ger","billingCycle":"hourly"}`, `{"id":"srv","name":"web","status":"pending"}`},
-		{"server overrides", []string{"server", "create", "web", "--instance-type", "base", "--location", "us-east", "--billing-cycle", "monthly", "--disk-size", "100"}, "POST", "/servers", `{"name":"web","instanceType":"base","location":"us-east","billingCycle":"monthly","diskSizeGb":100}`, `{"id":"srv","name":"web"}`},
+		{"server defaults", []string{"server", "create", "web"}, "POST", "/servers", `{"name":"web","instanceType":"base","location":"ger","billingCycle":"hourly"}`, `{"id":"srv","name":"web","status":"pending"}`},
+		{"server overrides", []string{"server", "create", "web", "--instance-type", "starter", "--location", "us-east", "--billing-cycle", "monthly", "--disk-size", "100"}, "POST", "/servers", `{"name":"web","instanceType":"starter","location":"us-east","billingCycle":"monthly","diskSizeGb":100}`, `{"id":"srv","name":"web"}`},
 		{"server compute scale", []string{"server", "scale", "web", "medium"}, "POST", "/servers/srv", `{"instanceType":"medium","billingCycle":"hourly"}`, ""},
 		{"server disk growth", []string{"server", "resize-disk", "web", "100"}, "POST", "/servers/srv/disk", `{"diskSizeGb":100}`, ""},
 		{"project rename", []string{"project", "rename", "production", "prod"}, "PATCH", "/projects/p1", `{"name":"prod"}`, `{"id":"p1","name":"prod"}`},
