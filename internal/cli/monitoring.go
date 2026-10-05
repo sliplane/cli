@@ -14,7 +14,7 @@ func (o *options) metricsCommand(kind string) *cobra.Command {
 	var period string
 	var from, to int64
 	command := &cobra.Command{
-		Use: "metrics <name-or-id>", Short: "Show " + kind + " CPU and memory usage", Args: validateArguments,
+		Use: "metrics <name-or-id>", Aliases: []string{"metric"}, Short: "Show " + kind + " CPU and memory usage", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			query := url.Values{}
 			if command.Flags().Changed("from") || command.Flags().Changed("to") {
@@ -70,7 +70,7 @@ func (o *options) metricsCommand(kind string) *cobra.Command {
 
 func (o *options) serviceEventsCommand() *cobra.Command {
 	return &cobra.Command{
-		Use: "events <service>", Short: "Show deployment and system events, newest first", Args: validateArguments,
+		Use: "events <service>", Aliases: []string{"event"}, Short: "Show deployment and system events, newest first", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, _, err := o.client(command)
 			if err != nil {

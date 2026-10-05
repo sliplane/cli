@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -69,7 +70,7 @@ func (o *options) postgresRestoreWindowCommand() *cobra.Command {
 }
 
 func (o *options) postgresQueryStatsCommand(kind, description string) *cobra.Command {
-	return &cobra.Command{Use: kind + " <name-or-id>", Short: description, Args: validateArguments,
+	return &cobra.Command{Use: kind + " <name-or-id>", Aliases: []string{strings.TrimSuffix(kind, "queries") + "query"}, Short: description, Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, database, err := o.postgresAccess(command, args[0])
 			if err != nil {
@@ -90,7 +91,7 @@ func (o *options) postgresQueryStatsCommand(kind, description string) *cobra.Com
 }
 
 func (o *options) postgresConnectionsCommand() *cobra.Command {
-	return &cobra.Command{Use: "active-connections <name-or-id>", Short: "Show the latest connection snapshot", Args: validateArguments,
+	return &cobra.Command{Use: "active-connections <name-or-id>", Aliases: []string{"active-connection"}, Short: "Show the latest connection snapshot", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, database, err := o.postgresAccess(command, args[0])
 			if err != nil {
@@ -110,7 +111,7 @@ func (o *options) postgresConnectionsCommand() *cobra.Command {
 }
 
 func (o *options) postgresSizesCommand() *cobra.Command {
-	return &cobra.Command{Use: "relation-sizes <name-or-id>", Short: "Show table and index sizes, largest first", Args: validateArguments,
+	return &cobra.Command{Use: "relation-sizes <name-or-id>", Aliases: []string{"relation-size"}, Short: "Show table and index sizes, largest first", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			client, database, err := o.postgresAccess(command, args[0])
 			if err != nil {
@@ -133,7 +134,7 @@ func (o *options) postgresSizesCommand() *cobra.Command {
 func (o *options) postgresLogsCommand() *cobra.Command {
 	var since, until string
 	var limit int
-	command := &cobra.Command{Use: "logs <name-or-id>", Short: "Read recent PostgreSQL server logs (retained for 24 hours)", Args: validateArguments,
+	command := &cobra.Command{Use: "logs <name-or-id>", Aliases: []string{"log"}, Short: "Read recent PostgreSQL server logs (retained for 24 hours)", Args: validateArguments,
 		Example: "  sliplane postgres logs main\n  sliplane postgres logs main --since 30m --limit 1000 -o json",
 		RunE: func(command *cobra.Command, args []string) error {
 			if limit < 1 || limit > 1000 {

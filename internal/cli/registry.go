@@ -16,7 +16,7 @@ import (
 )
 
 func (o *options) registryCommand() *cobra.Command {
-	command := &cobra.Command{Use: "registry", Short: "Manage container registry credentials"}
+	command := &cobra.Command{Use: "registry", Aliases: []string{"registries"}, Short: "Manage container registry credentials"}
 	command.AddCommand(&cobra.Command{Use: "list", Aliases: []string{"ls"}, Short: "List registry credentials", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
 			client, _, err := o.client(command)

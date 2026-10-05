@@ -27,7 +27,7 @@ func (o *options) logsCommand() *cobra.Command {
 	var since string
 	var interval time.Duration
 	command := &cobra.Command{
-		Use: "logs <name-or-id>", Short: "Read service logs; --follow polls for new lines", Args: validateArguments,
+		Use: "logs <name-or-id>", Aliases: []string{"log"}, Short: "Read service logs; --follow polls for new lines", Args: validateArguments,
 		Example: "  sliplane logs api --follow\n  sliplane logs api --since 30m -o json",
 		RunE: func(command *cobra.Command, args []string) error {
 			if interval < time.Second {

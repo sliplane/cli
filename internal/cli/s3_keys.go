@@ -14,7 +14,7 @@ import (
 )
 
 func (o *options) s3KeyCommand() *cobra.Command {
-	command := &cobra.Command{Use: "key", Short: "List, create, and delete bucket access keys"}
+	command := &cobra.Command{Use: "key", Aliases: []string{"keys"}, Short: "List, create, and delete bucket access keys"}
 	command.AddCommand(o.s3KeyListCommand(), o.s3KeyCreateCommand(), o.s3KeyDeleteCommand())
 	return command
 }
