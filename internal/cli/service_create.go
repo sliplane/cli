@@ -134,7 +134,7 @@ func (flags serviceCreateFlags) serviceDeployment(command *cobra.Command) (api.S
 		if err := validateServiceImage(flags.image); err != nil {
 			return deployment, err
 		}
-		deployment.URL = flags.image
+		deployment.URL = normalizeServiceImage(flags.image)
 		return deployment, nil
 	}
 	if command.Flags().Changed("registry-auth") {
@@ -156,6 +156,20 @@ func (flags serviceCreateFlags) serviceDeployment(command *cobra.Command) (api.S
 		}
 	}
 	return deployment, nil
+}
+
+func normalizeServiceImage(value string) string {
+	registry, path, hasSlash := strings.Cut(value, "/")
+	if !hasSlash {
+		return "docker.io/library/" + value
+	}
+	if !strings.ContainsAny(registry, ".:") && registry != "localhost" {
+		return "docker.io/" + value
+	}
+	if registry == "docker.io" && !strings.Contains(path, "/") {
+		return "docker.io/library/" + path
+	}
+	return value
 }
 
 func validateServiceImage(value string) error {
