@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"sliplane-cli/internal/api"
 )
 
 func TestServiceCreateRequests(t *testing.T) {
@@ -26,6 +28,10 @@ func TestServiceCreateRequests(t *testing.T) {
 	} {
 		for _, output := range []string{"text", "json"} {
 			t.Run(test.name+"/"+output, func(t *testing.T) {
+				var expected api.CreateServiceInput
+				if err := json.Unmarshal([]byte(test.body), &expected); err != nil {
+					t.Fatal(err)
+				}
 				writes := 0
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Header.Get("Authorization") != "Bearer test-token" {
@@ -49,7 +55,13 @@ func TestServiceCreateRequests(t *testing.T) {
 							t.Errorf("body = %#v; want %#v", got, want)
 						}
 						w.WriteHeader(http.StatusCreated)
-						fmt.Fprint(w, `{"id":"s1","name":"api","status":"pending","network":{"protocol":"http","managedDomain":"api.sliplane.app"},"env":[{"key":"SECRET","value":"response-secret"}]}`)
+						network := api.ServiceNetworkDetails{Public: expected.Network.Public, Protocol: expected.Network.Protocol, InternalDomain: "api.internal"}
+						if network.Public {
+							network.ManagedDomain = "api.sliplane.app"
+						}
+						if err := json.NewEncoder(w).Encode(map[string]any{"id": "s1", "name": "api", "status": "pending", "deployment": expected.Deployment, "network": network, "env": []api.EnvironmentVariable{{Key: "SECRET", Value: "response-secret", Secret: true}}}); err != nil {
+							t.Error(err)
+						}
 					default:
 						t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 						http.NotFound(w, r)
@@ -58,8 +70,15 @@ func TestServiceCreateRequests(t *testing.T) {
 				defer server.Close()
 				args := append([]string{"service", "create", "api", "--project", "production", "--server", "server1", "-o", output}, test.args...)
 				stdout, stderr, err := runCommand(t, server.URL, args...)
-				if err != nil || stderr != "" || writes != 1 || !strings.Contains(stdout, "s1") || !strings.Contains(stdout, "pending") || !strings.Contains(stdout, "https://api.sliplane.app") {
+				if err != nil || stderr != "" || writes != 1 || !strings.Contains(stdout, "s1") || !strings.Contains(stdout, "pending") || !strings.Contains(stdout, "api.internal") || !strings.Contains(stdout, expected.Deployment.URL) {
 					t.Fatalf("stdout=%q stderr=%q err=%v writes=%d", stdout, stderr, err, writes)
+				}
+				wantURL := expected.Network.Public && expected.Network.Protocol == "http"
+				if strings.Contains(stdout, "https://api.sliplane.app") != wantURL {
+					t.Fatalf("incorrect HTTP URL in %s", stdout)
+				}
+				if output == "text" && !strings.Contains(stdout, "Access") {
+					t.Fatalf("missing access: %s", stdout)
 				}
 				for _, secret := range []string{"response-secret", "local-secret", "test-token"} {
 					if strings.Contains(stdout+stderr, secret) {
@@ -68,7 +87,7 @@ func TestServiceCreateRequests(t *testing.T) {
 				}
 				if output == "json" {
 					var receipt map[string]any
-					if json.Unmarshal([]byte(stdout), &receipt) != nil || receipt["projectId"] != "p1" || receipt["serverId"] != "server1" || receipt["preset"] != nil || receipt["env"] != nil {
+					if json.Unmarshal([]byte(stdout), &receipt) != nil || receipt["projectId"] != "p1" || receipt["serverId"] != "server1" || receipt["preset"] != nil || receipt["env"] != nil || receipt["network"] == nil || receipt["deployment"] == nil {
 						t.Fatalf("incorrect receipt: %s", stdout)
 					}
 				}

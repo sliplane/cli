@@ -168,20 +168,53 @@ func (o *options) printServiceAction(command *cobra.Command, service api.Service
 
 func (o *options) printService(command *cobra.Command, service api.Service) error {
 	rows := [][]string{{"Name", service.Name}, {"ID", service.ID}, {"Status", service.Status}, {"Project", service.ProjectID}, {"Server", service.ServerID}, {"Created", formatTimestamp(service.CreatedAt)}}
+	details, err := serviceDetailRows(service)
+	if err != nil {
+		return err
+	}
+	return o.print(command, service, append(rows, details...))
+}
+
+// serviceDetailRows uses the same source and access fields for creation and inspection.
+func serviceDetailRows(service api.Service) ([][]string, error) {
+	var rows [][]string
+	if len(service.Deployment) > 0 {
+		var deployment api.ServiceDeployment
+		if err := json.Unmarshal(service.Deployment, &deployment); err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(deployment.URL, "https://github.com/") {
+			rows = append(rows, []string{"Repository", deployment.URL})
+			if deployment.Branch != "" {
+				rows = append(rows, []string{"Branch", deployment.Branch})
+			}
+		} else if deployment.URL != "" {
+			rows = append(rows, []string{"Image", deployment.URL})
+		}
+	}
 	if len(service.Network) > 0 {
 		var network api.ServiceNetworkDetails
 		if err := json.Unmarshal(service.Network, &network); err != nil {
-			return err
+			return nil, err
 		}
-		if network.ManagedDomain != "" {
-			rows = append(rows, []string{"Managed domain", network.ManagedDomain})
+		access := "private"
+		if network.Public {
+			access = strings.TrimSpace("public " + strings.ToUpper(network.Protocol))
+		}
+		rows = append(rows, []string{"Access", access})
+		if network.Public && network.ManagedDomain != "" {
+			if network.Protocol == "http" {
+				rows = append(rows, []string{"URL", "https://" + network.ManagedDomain})
+			} else {
+				rows = append(rows, []string{"Hostname", network.ManagedDomain})
+			}
 		}
 		if network.InternalDomain != "" {
-			rows = append(rows, []string{"Internal domain", network.InternalDomain})
+			rows = append(rows, []string{"Internal", network.InternalDomain})
 		}
 		for _, domain := range network.CustomDomains {
 			rows = append(rows, []string{"Custom domain", domain.Domain + " (" + domain.Status + ")"})
 		}
 	}
-	return o.print(command, service, rows)
+	return rows, nil
 }

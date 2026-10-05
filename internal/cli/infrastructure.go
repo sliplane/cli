@@ -39,7 +39,7 @@ func (o *options) serverCreateCommand() *cobra.Command {
 			return o.printServer(command, server)
 		},
 	}
-	command.Flags().StringVar(&input.InstanceType, "instance-type", "starter", "Instance type")
+	command.Flags().StringVar(&input.InstanceType, "instance-type", "base", "Instance type")
 	command.Flags().StringVar(&input.Location, "location", "ger", "Region: ger, fin, us-east, us-west, sin, conf")
 	command.Flags().StringVar(&input.BillingCycle, "billing-cycle", "hourly", "Billing cycle: hourly, monthly, yearly")
 	command.Flags().IntVar(&input.DiskSizeGB, "disk-size", 0, "Larger data disk in GB (default: bundled disk)")
@@ -136,7 +136,23 @@ func resolveServer(ctx context.Context, client *api.Client, query string) (api.S
 }
 
 func (o *options) printServer(command *cobra.Command, server api.Server) error {
-	return o.print(command, server, [][]string{{"Name", server.Name}, {"ID", server.ID}, {"Status", server.Status}, {"Type", server.InstanceType}, {"Location", server.Location}, {"Disk", strconv.Itoa(server.DiskSizeGB) + " GB"}, {"IPv4", server.IPv4}, {"IPv6", server.IPv6}})
+	rows := [][]string{{"Name", server.Name}, {"ID", server.ID}, {"Status", server.Status}, {"Type", server.InstanceType}, {"Location", server.Location}}
+	if server.VCPU > 0 {
+		rows = append(rows, []string{"CPU", strconv.Itoa(server.VCPU) + " vCPU"})
+	}
+	if server.MemoryMB > 0 {
+		rows = append(rows, []string{"Memory", strconv.Itoa(server.MemoryMB) + " MB"})
+	}
+	if server.DiskSizeGB > 0 {
+		rows = append(rows, []string{"Disk", strconv.Itoa(server.DiskSizeGB) + " GB"})
+	}
+	if server.IPv4 != "" {
+		rows = append(rows, []string{"IPv4", server.IPv4})
+	}
+	if server.IPv6 != "" {
+		rows = append(rows, []string{"IPv6", server.IPv6})
+	}
+	return o.print(command, server, rows)
 }
 
 func (o *options) serverDeleteCommand() *cobra.Command {

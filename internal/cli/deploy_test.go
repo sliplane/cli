@@ -43,7 +43,7 @@ func TestDeployCreatesFromPreset(t *testing.T) {
 			}
 			created = append(created, input)
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprintf(w, `{"id":"s1","name":%q,"status":"pending","network":{"managedDomain":"workflows.sliplane.app","protocol":"http"},"env":[{"key":"SECRET","value":"response-secret"}]}`, input.Name)
+			fmt.Fprintf(w, `{"id":"s1","name":%q,"status":"pending","deployment":{"url":"docker.io/n8nio/n8n:test"},"network":{"public":true,"managedDomain":"workflows.sliplane.app","internalDomain":"workflows.internal","protocol":"http"},"env":[{"key":"SECRET","value":"response-secret"}]}`, input.Name)
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(404)
