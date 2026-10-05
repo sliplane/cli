@@ -67,6 +67,7 @@ func updatedDeployment(command *cobra.Command, current json.RawMessage) (map[str
 				if err := validateServiceImage(text); err != nil {
 					return nil, err
 				}
+				text = normalizeServiceImage(text)
 			}
 			if field.flag == "repo" {
 				if err := validateServiceRepository(text); err != nil {
