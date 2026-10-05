@@ -159,6 +159,10 @@ func (flags serviceCreateFlags) serviceDeployment(command *cobra.Command) (api.S
 }
 
 func normalizeServiceImage(value string) string {
+	name := value[strings.LastIndex(value, "/")+1:]
+	if !strings.Contains(value, "@") && !strings.Contains(name, ":") {
+		value += ":latest"
+	}
 	registry, path, hasSlash := strings.Cut(value, "/")
 	if !hasSlash {
 		return "docker.io/library/" + value
