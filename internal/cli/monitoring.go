@@ -1,8 +1,8 @@
 package cli
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"strconv"
 
@@ -12,10 +12,17 @@ import (
 
 func (o *options) metricsCommand(kind string) *cobra.Command {
 	var period string
+	var watch bool
 	var from, to int64
 	command := &cobra.Command{
 		Use: "metrics <name-or-id>", Aliases: []string{"metric"}, Short: "Show " + kind + " CPU and memory usage", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
+			if watch && (command.Flags().Changed("from") || command.Flags().Changed("to")) {
+				return errors.New("--watch uses a rolling --range; omit --from and --to")
+			}
+			if watch && !o.canPrompt(command) {
+				return errors.New("--watch requires an interactive terminal with text output")
+			}
 			query := url.Values{}
 			if command.Flags().Changed("from") || command.Flags().Changed("to") {
 				if command.Flags().Changed("range") || !command.Flags().Changed("from") || !command.Flags().Changed("to") || from <= 0 || to <= from {
@@ -35,34 +42,43 @@ func (o *options) metricsCommand(kind string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var metrics []api.Metric
+			var fetch func(context.Context) ([]api.Metric, error)
+			name := args[0]
 			if kind == "service" {
 				service, err := o.resolveService(command.Context(), client, args[0])
 				if err != nil {
 					return err
 				}
-				metrics, err = client.ServiceMetrics(command.Context(), service.ProjectID, service.ID, query)
-				if err != nil {
-					return err
+				name = service.Name
+				fetch = func(ctx context.Context) ([]api.Metric, error) {
+					return client.ServiceMetrics(ctx, service.ProjectID, service.ID, query)
 				}
 			} else {
 				server, err := o.selectServer(command, client, args[0])
 				if err != nil {
 					return err
 				}
-				metrics, err = client.ServerMetrics(command.Context(), server.id, query)
-				if err != nil {
-					return err
+				name = server.name
+				fetch = func(ctx context.Context) ([]api.Metric, error) {
+					return client.ServerMetrics(ctx, server.id, query)
 				}
 			}
-			rows := [][]string{{"TIME", "CPU %", "USED MB", "FREE MB", "TOTAL MB"}}
-			for _, metric := range metrics {
-				rows = append(rows, []string{formatTimestamp(metric.CreatedAt), fmt.Sprintf("%.2f", metric.CPUUsage), fmt.Sprintf("%.2f", metric.UsedMemory), fmt.Sprintf("%.2f", metric.FreeMemory), fmt.Sprintf("%.2f", metric.TotalMemory)})
+			title := kind + " · " + name
+			if watch {
+				return watchMetrics(command, title, period, fetch)
 			}
-			return o.print(command, metrics, rows)
+			metrics, err := fetch(command.Context())
+			if err != nil {
+				return err
+			}
+			if o.output == "json" {
+				return writeJSON(command.OutOrStdout(), metrics)
+			}
+			return printMetrics(command.OutOrStdout(), title, metrics)
 		},
 	}
 	command.Flags().StringVar(&period, "range", "1h", "Time range: 10min, 1h, 24h, or 7d")
+	command.Flags().BoolVarP(&watch, "watch", "w", false, "Refresh charts every 5s (q or Ctrl+C to exit)")
 	command.Flags().Int64Var(&from, "from", 0, "Start time in Unix seconds (requires --to)")
 	command.Flags().Int64Var(&to, "to", 0, "End time in Unix seconds (requires --from)")
 	return command

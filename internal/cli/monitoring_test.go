@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"sliplane-cli/internal/api"
 )
 
 func TestMetricsRanges(t *testing.T) {
@@ -43,6 +46,11 @@ func TestMetricsRanges(t *testing.T) {
 				stdout, _, err := runCommand(t, server.URL, append([]string{kind, "metrics", "target"}, test.flags...)...)
 				if err != nil || requests != 1 || !strings.Contains(stdout, "12.50") {
 					t.Fatalf("output=%s requests=%d err=%v", stdout, requests, err)
+				}
+				stdout, _, err = runCommand(t, server.URL, append([]string{kind, "metrics", "target", "-o", "json"}, test.flags...)...)
+				var raw []api.Metric
+				if err != nil || json.Unmarshal([]byte(stdout), &raw) != nil || len(raw) != 1 || raw[0].FreeMemory != 512 {
+					t.Fatalf("JSON metrics=%s err=%v", stdout, err)
 				}
 			})
 		}
