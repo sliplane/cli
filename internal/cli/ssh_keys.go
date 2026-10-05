@@ -16,7 +16,7 @@ import (
 )
 
 func (o *options) sshKeyCommand() *cobra.Command {
-	command := &cobra.Command{Use: "ssh-key", Short: "Manage persistent SSH public keys"}
+	command := &cobra.Command{Use: "ssh-key", Aliases: []string{"ssh-keys"}, Short: "Manage persistent SSH public keys"}
 	command.AddCommand(o.sshKeyListCommand(), o.sshKeyRegisterCommand(), o.sshKeyDeleteCommand(), o.sshKeyAccessCommand("attach"), o.sshKeyAccessCommand("detach"))
 	return command
 }

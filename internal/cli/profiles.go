@@ -18,7 +18,7 @@ type profileSummary struct {
 }
 
 func (o *options) profileCommand() *cobra.Command {
-	command := &cobra.Command{Use: "profile", Short: "Manage team profiles"}
+	command := &cobra.Command{Use: "profile", Aliases: []string{"profiles"}, Short: "Manage team profiles"}
 	command.AddCommand(&cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List saved profiles", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {

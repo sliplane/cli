@@ -11,7 +11,7 @@ import (
 
 func (o *options) projectCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "project", Short: "Manage projects"}
+	command := &cobra.Command{Use: "project", Aliases: []string{"projects"}, Short: "Manage projects"}
 	list := &cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List all projects", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
@@ -75,7 +75,7 @@ func (o *options) projectCommand() *cobra.Command {
 
 func (o *options) serverCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "server", Short: "Manage servers"}
+	command := &cobra.Command{Use: "server", Aliases: []string{"servers"}, Short: "Manage servers"}
 	list := &cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List all servers", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
@@ -128,7 +128,7 @@ func (o *options) serverCommand() *cobra.Command {
 
 func (o *options) serviceCommand() *cobra.Command {
 	var all bool
-	command := &cobra.Command{Use: "service", Short: "Inspect, deploy, and manage services"}
+	command := &cobra.Command{Use: "service", Aliases: []string{"services"}, Short: "Inspect, deploy, and manage services"}
 	list := &cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List services across projects (or choose --project)", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
