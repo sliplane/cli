@@ -171,16 +171,24 @@ func TestServiceCreateFailures(t *testing.T) {
 func TestServiceImageReferences(t *testing.T) {
 	for _, test := range []struct{ input, want string }{
 		{"nginx:alpine", "docker.io/library/nginx:alpine"},
-		{"nginx", "docker.io/library/nginx"},
+		{"nginx", "docker.io/library/nginx:latest"},
+		{"library/nginx", "docker.io/library/nginx:latest"},
+		{"docker.io/nginx", "docker.io/library/nginx:latest"},
+		{"docker.io/library/nginx", "docker.io/library/nginx:latest"},
+		{"acme/web", "docker.io/acme/web:latest"},
+		{"ghcr.io/acme/web", "ghcr.io/acme/web:latest"},
+		{"registry.example:5000/team/web", "registry.example:5000/team/web:latest"},
+		{"registry.example:5000/web", "registry.example:5000/web:latest"},
 		{"library/nginx:alpine", "docker.io/library/nginx:alpine"},
 		{"acme/web:v1", "docker.io/acme/web:v1"},
 		{"docker.io/nginx:alpine", "docker.io/library/nginx:alpine"},
 		{"docker.io/library/nginx:alpine", "docker.io/library/nginx:alpine"},
 		{"ghcr.io/acme/web:v1", "ghcr.io/acme/web:v1"},
 		{"localhost:5000/web:v1", "localhost:5000/web:v1"},
-		{"localhost/web", "localhost/web"},
+		{"localhost/web", "localhost/web:latest"},
 		{"registry.example:5000/team/web:v1", "registry.example:5000/team/web:v1"},
 		{"nginx@sha256:" + strings.Repeat("a", 64), "docker.io/library/nginx@sha256:" + strings.Repeat("a", 64)},
+		{"registry.example:5000/web@sha256:" + strings.Repeat("a", 64), "registry.example:5000/web@sha256:" + strings.Repeat("a", 64)},
 	} {
 		t.Run(test.input, func(t *testing.T) {
 			create := (&options{}).serviceCreateCommand()
