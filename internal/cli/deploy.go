@@ -250,28 +250,30 @@ func (o *options) chooseDeploymentResource(command *cobra.Command, kind, query s
 // printCreatedService emits a creation receipt without returning environment credentials.
 func (o *options) printCreatedService(command *cobra.Command, service api.Service, presetID string, project, server choice) error {
 	receipt := struct {
-		ID        string `json:"id"`
-		Name      string `json:"name"`
-		Status    string `json:"status"`
-		Preset    string `json:"preset,omitempty"`
-		ProjectID string `json:"projectId"`
-		ServerID  string `json:"serverId"`
-		URL       string `json:"url,omitempty"`
-	}{ID: service.ID, Name: service.Name, Status: service.Status, Preset: presetID, ProjectID: project.id, ServerID: server.id}
-	var network struct {
-		ManagedDomain string `json:"managedDomain"`
-		Protocol      string `json:"protocol"`
-	}
-	if err := json.Unmarshal(service.Network, &network); err == nil && network.Protocol == "http" && network.ManagedDomain != "" {
+		ID         string          `json:"id"`
+		Name       string          `json:"name"`
+		Status     string          `json:"status"`
+		Preset     string          `json:"preset,omitempty"`
+		ProjectID  string          `json:"projectId"`
+		ServerID   string          `json:"serverId"`
+		URL        string          `json:"url,omitempty"`
+		Deployment json.RawMessage `json:"deployment,omitempty"`
+		Network    json.RawMessage `json:"network,omitempty"`
+	}{ID: service.ID, Name: service.Name, Status: service.Status, Preset: presetID, ProjectID: project.id, ServerID: server.id, Deployment: service.Deployment, Network: service.Network}
+	var network api.ServiceNetworkDetails
+	if err := json.Unmarshal(service.Network, &network); err == nil && network.Public && network.Protocol == "http" && network.ManagedDomain != "" {
 		receipt.URL = "https://" + network.ManagedDomain
 	}
 	rows := [][]string{{"Created", service.Name}, {"ID", service.ID}}
 	if presetID != "" {
 		rows = append(rows, []string{"Preset", presetID})
 	}
-	rows = append(rows, []string{"Project", project.name}, []string{"Server", server.name}, []string{"Status", service.Status})
-	if receipt.URL != "" {
-		rows = append(rows, []string{"URL", receipt.URL})
+	rows = append(rows, []string{"Project", project.name}, []string{"Server", server.name})
+	details, err := serviceDetailRows(service)
+	if err != nil {
+		return err
 	}
+	rows = append(rows, details...)
+	rows = append(rows, []string{"Status", service.Status})
 	return o.print(command, receipt, rows)
 }
