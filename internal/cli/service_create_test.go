@@ -16,13 +16,13 @@ func TestServiceCreateRequests(t *testing.T) {
 		name, body string
 		args       []string
 	}{
-		{"private image", `{"name":"api","serverId":"server1","deployment":{"url":"nginx:1.28"},"network":{"public":false}}`, []string{"--image", "nginx:1.28"}},
+		{"private image", `{"name":"api","serverId":"server1","deployment":{"url":"docker.io/library/nginx:1.28"},"network":{"public":false}}`, []string{"--image", "nginx:1.28"}},
 		{"repository defaults", `{"name":"api","serverId":"server1","deployment":{"url":"https://github.com/acme/api"},"network":{"public":false}}`, []string{"--repo", "https://github.com/acme/api"}},
 		{"full image", `{"name":"api","serverId":"server1","deployment":{"url":"ghcr.io/acme/api:v1","registryAuthenticationId":"credential1"},"network":{"public":true,"protocol":"http"},"healthcheck":"/health","cmd":"npm start","env":[{"key":"CREATE_DATABASE_URL","value":"postgres://owner:local-secret@db/app","secret":true},{"key":"EMPTY","value":"","secret":true},{"key":"PORT","value":"3000","secret":false}],"volumes":[{"name":"data","mountPath":"/data"},{"id":"volume1","mountPath":"/cache"}]}`, []string{"--image", "ghcr.io/acme/api:v1", "--registry-auth", "credential1", "--public", "--healthcheck", "/health", "--cmd", "npm start", "--env", "CREATE_DATABASE_URL", "--env", "EMPTY=", "--public-env", "PORT=3000", "--volume", "data:/data", "--mount", "volume1:/cache"}},
 		{"full repository", `{"name":"api","serverId":"server1","deployment":{"url":"https://github.com/acme/api.git","branch":"develop","autoDeploy":false,"dockerfilePath":"apps/api/Dockerfile","dockerContext":"apps/api","includePaths":["apps/api/**","packages/{a,b}/**"],"ignorePaths":["**/*.md"]},"network":{"public":true,"protocol":"http"}}`, []string{"--repo", "https://github.com/acme/api.git", "--branch", "develop", "--auto-deploy=false", "--dockerfile", "apps/api/Dockerfile", "--docker-context", "apps/api", "--include-path", "apps/api/**", "--include-path", "packages/{a,b}/**", "--ignore-path", "**/*.md", "--public"}},
 		{"automatic build", `{"name":"api","serverId":"server1","deployment":{"url":"https://github.com/acme/api","autoDeploy":true,"dockerfilePath":""},"network":{"public":false}}`, []string{"--repo", "https://github.com/acme/api", "--dockerfile=", "--auto-deploy=true"}},
-		{"TCP", `{"name":"api","serverId":"server1","deployment":{"url":"redis:7"},"network":{"public":true,"protocol":"tcp"}}`, []string{"--image", "redis:7", "--public", "--protocol", "tcp"}},
-		{"UDP", `{"name":"api","serverId":"server1","deployment":{"url":"acme/game:v1"},"network":{"public":true,"protocol":"udp"}}`, []string{"--image", "acme/game:v1", "--public", "--protocol", "udp"}},
+		{"TCP", `{"name":"api","serverId":"server1","deployment":{"url":"docker.io/library/redis:7"},"network":{"public":true,"protocol":"tcp"}}`, []string{"--image", "redis:7", "--public", "--protocol", "tcp"}},
+		{"UDP", `{"name":"api","serverId":"server1","deployment":{"url":"docker.io/acme/game:v1"},"network":{"public":true,"protocol":"udp"}}`, []string{"--image", "acme/game:v1", "--public", "--protocol", "udp"}},
 	} {
 		for _, output := range []string{"text", "json"} {
 			t.Run(test.name+"/"+output, func(t *testing.T) {
@@ -163,6 +163,48 @@ func TestServiceCreateFailures(t *testing.T) {
 			stdout, stderr, err := runCommand(t, server.URL, args...)
 			if err == nil || !strings.Contains(err.Error(), test.want) || stdout != "" || stderr != "" || writes != test.writes {
 				t.Fatalf("stdout=%q stderr=%q err=%v writes=%d", stdout, stderr, err, writes)
+			}
+		})
+	}
+}
+
+func TestServiceImageReferences(t *testing.T) {
+	for _, test := range []struct{ input, want string }{
+		{"nginx:alpine", "docker.io/library/nginx:alpine"},
+		{"nginx", "docker.io/library/nginx"},
+		{"library/nginx:alpine", "docker.io/library/nginx:alpine"},
+		{"acme/web:v1", "docker.io/acme/web:v1"},
+		{"docker.io/nginx:alpine", "docker.io/library/nginx:alpine"},
+		{"docker.io/library/nginx:alpine", "docker.io/library/nginx:alpine"},
+		{"ghcr.io/acme/web:v1", "ghcr.io/acme/web:v1"},
+		{"localhost:5000/web:v1", "localhost:5000/web:v1"},
+		{"localhost/web", "localhost/web"},
+		{"registry.example:5000/team/web:v1", "registry.example:5000/team/web:v1"},
+		{"nginx@sha256:" + strings.Repeat("a", 64), "docker.io/library/nginx@sha256:" + strings.Repeat("a", 64)},
+	} {
+		t.Run(test.input, func(t *testing.T) {
+			create := (&options{}).serviceCreateCommand()
+			if err := create.Flags().Set("image", test.input); err != nil {
+				t.Fatal(err)
+			}
+			deployment, err := (serviceCreateFlags{image: test.input}).serviceDeployment(create)
+			if err != nil || deployment.URL != test.want {
+				t.Fatalf("create: %s, %v", deployment.URL, err)
+			}
+			update := (&options{}).serviceUpdateCommand()
+			if err := update.Flags().Set("image", test.input); err != nil {
+				t.Fatal(err)
+			}
+			updated, err := updatedDeployment(update, []byte(`{"url":"docker.io/library/nginx:latest","registryAuthenticationId":"auth1"}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var image string
+			if err := json.Unmarshal(updated["url"], &image); err != nil {
+				t.Fatal(err)
+			}
+			if image != test.want || string(updated["registryAuthenticationId"]) != `"auth1"` {
+				t.Fatalf("update: %s", updated)
 			}
 		})
 	}

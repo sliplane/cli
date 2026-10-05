@@ -21,7 +21,7 @@ func TestServiceManagementRequests(t *testing.T) {
 		{"command", "PATCH", "", `{"cmd":"npm start"}`, []string{"update", "api", "--cmd", "npm start"}},
 		{"clear command", "PATCH", "", `{"cmd":""}`, []string{"update", "api", "--cmd="}},
 		{"combined update", "PATCH", "", `{"name":"backend","healthcheck":"/ready","cmd":""}`, []string{"update", "api", "--name", "backend", "--healthcheck", "/ready", "--cmd="}},
-		{"redeploy by ID", "POST", "/deploy", "", []string{"redeploy", "s1"}},
+		{"redeploy by ID", "POST", "/deploy", `{}`, []string{"redeploy", "s1"}},
 		{"redeploy tag", "POST", "/deploy", `{"tag":"v2.0.0"}`, []string{"redeploy", "api", "--tag", "v2.0.0"}},
 		{"pause", "POST", "/pause", "", []string{"pause", "api"}},
 		{"unpause", "POST", "/unpause", "", []string{"unpause", "api"}},

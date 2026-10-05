@@ -73,12 +73,9 @@ func (c *Client) DeleteService(ctx context.Context, projectID, serviceID string)
 }
 
 func (c *Client) RedeployService(ctx context.Context, projectID, serviceID, tag string) error {
-	var input any
-	if tag != "" {
-		input = struct {
-			Tag string `json:"tag"`
-		}{Tag: tag}
-	}
+	input := struct {
+		Tag string `json:"tag,omitempty"`
+	}{Tag: tag}
 	return c.request(ctx, http.MethodPost, servicePath(projectID, serviceID)+"/deploy", input, nil)
 }
 

@@ -221,7 +221,7 @@ func TestDeployInteractiveDestination(t *testing.T) {
 					if input.ServerID != scenario.serverID {
 						t.Fatalf("selected wrong server: %q", input.ServerID)
 					}
-					if scenario.createSource != nil && input.Deployment.URL != "nginx:1.28" && input.Deployment.URL != "https://github.com/acme/api" {
+					if scenario.createSource != nil && input.Deployment.URL != "docker.io/library/nginx:1.28" && input.Deployment.URL != "https://github.com/acme/api" {
 						t.Fatalf("incorrect deployment source: %q", input.Deployment.URL)
 					}
 					if scenario.name == "create inferred repository" && input.Deployment.Branch != "develop" {
