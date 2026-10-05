@@ -12,7 +12,7 @@ import (
 )
 
 func (o *options) postgresAllowlistCommand() *cobra.Command {
-	command := &cobra.Command{Use: "allowlist", Short: "Manage persistent PostgreSQL IP access rules"}
+	command := &cobra.Command{Use: "allowlist", Aliases: []string{"allowlists"}, Short: "Manage persistent PostgreSQL IP access rules"}
 	command.AddCommand(&cobra.Command{Use: "list <name-or-id>", Aliases: []string{"ls"}, Short: "List allowed IP ranges", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
 			_, database, err := o.postgresAccess(command, args[0])

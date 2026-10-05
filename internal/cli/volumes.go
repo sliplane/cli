@@ -43,7 +43,7 @@ func (o *options) printVolume(command *cobra.Command, volume api.Volume) error {
 
 func (o *options) serverVolumeCommand() *cobra.Command {
 	var serverName string
-	command := &cobra.Command{Use: "volume", Short: "List, create, and rename server volumes"}
+	command := &cobra.Command{Use: "volume", Aliases: []string{"volumes"}, Short: "List, create, and rename server volumes"}
 	command.PersistentFlags().StringVar(&serverName, "server", "", "Server name or ID (auto-selected when only one exists)")
 	command.AddCommand(&cobra.Command{
 		Use: "list", Aliases: []string{"ls"}, Short: "List volumes on a server", Args: validateArguments,
@@ -119,7 +119,7 @@ func (o *options) serverVolumeCommand() *cobra.Command {
 }
 
 func (o *options) serviceVolumeCommand() *cobra.Command {
-	command := &cobra.Command{Use: "volume", Short: "Manage service volume mounts"}
+	command := &cobra.Command{Use: "volume", Aliases: []string{"volumes"}, Short: "Manage service volume mounts"}
 	command.AddCommand(&cobra.Command{
 		Use: "list <service>", Aliases: []string{"ls"}, Short: "List a service's mounted volumes", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {

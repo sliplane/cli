@@ -11,7 +11,7 @@ import (
 )
 
 func (o *options) serviceEnvCommand() *cobra.Command {
-	command := &cobra.Command{Use: "env", Short: "Manage service environment variables"}
+	command := &cobra.Command{Use: "env", Aliases: []string{"envs"}, Short: "Manage service environment variables"}
 	command.AddCommand(&cobra.Command{
 		Use: "list <service>", Aliases: []string{"ls"}, Short: "List environment variables (secret values are hidden)", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {
@@ -94,7 +94,7 @@ func (o *options) serviceEnvCommand() *cobra.Command {
 }
 
 func (o *options) serviceDomainCommand() *cobra.Command {
-	command := &cobra.Command{Use: "domain", Short: "Manage custom domains"}
+	command := &cobra.Command{Use: "domain", Aliases: []string{"domains"}, Short: "Manage custom domains"}
 	command.AddCommand(&cobra.Command{
 		Use: "list <service>", Aliases: []string{"ls"}, Short: "List custom domains and verification status", Args: validateArguments,
 		RunE: func(command *cobra.Command, args []string) error {

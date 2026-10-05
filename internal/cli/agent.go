@@ -21,7 +21,7 @@ var agentGuidance string
 func (o *options) agentCommand() *cobra.Command {
 	var yes bool
 	command := &cobra.Command{
-		Use: "agent", Short: "Set up Sliplane guidance for coding agents", Args: validateArguments,
+		Use: "agent", Aliases: []string{"agents"}, Short: "Set up Sliplane guidance for coding agents", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error { return command.Help() },
 	}
 	initialize := &cobra.Command{

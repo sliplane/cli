@@ -8,7 +8,7 @@ import (
 )
 
 func (o *options) configCommand() *cobra.Command {
-	command := &cobra.Command{Use: "config", Short: "Manage local preferences"}
+	command := &cobra.Command{Use: "config", Aliases: []string{"configs"}, Short: "Manage local preferences"}
 	command.AddCommand(&cobra.Command{
 		Use: "show", Short: "Show saved preferences and their file path", Args: validateArguments,
 		RunE: func(command *cobra.Command, _ []string) error {
