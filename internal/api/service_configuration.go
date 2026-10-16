@@ -17,6 +17,7 @@ type ServiceNetworkDetails struct {
 	Protocol       string         `json:"protocol,omitempty"`
 	ManagedDomain  string         `json:"managedDomain,omitempty"`
 	InternalDomain string         `json:"internalDomain,omitempty"`
+	InternalPort   int            `json:"internalPort,omitempty"`
 	CustomDomains  []CustomDomain `json:"customDomains,omitempty"`
 }
 

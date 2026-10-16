@@ -23,7 +23,7 @@ func TestSSHSessionLifecycle(t *testing.T) {
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
 		t.Skip("OpenSSH is not installed")
 	}
-	for _, scenario := range []string{"success", "attach failure", "invalid connection", "session failure", "canceled", "cleanup failure", "already expired"} {
+	for _, scenario := range []string{"success", "tunnel", "tunnel override", "tunnel guess", "tunnel guess failure", "attach failure", "invalid connection", "session failure", "canceled", "cleanup failure", "already expired"} {
 		t.Run(scenario, func(t *testing.T) {
 			workspace := t.TempDir()
 			identities := filepath.Join(workspace, "identities")
@@ -42,6 +42,9 @@ operation=
 port=
 username=
 host=
+forward=
+no_shell=
+probe=
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -i) identity=$2; shift ;;
@@ -51,6 +54,9 @@ while [ "$#" -gt 0 ]; do
     --) host=$2; shift ;;
     -M) master=yes ;;
     -O) operation=$2; shift ;;
+    -L) forward=$2; shift ;;
+    -N) no_shell=yes ;;
+    -W) probe=$2; shift ;;
   esac
   shift
 done
@@ -65,6 +71,23 @@ if [ "$master" = yes ]; then
   touch "$control"
   exit 0
 fi
+if [ -n "$probe" ]; then
+  if [ "$probe" != localhost:80 ]; then exit 94; fi
+  echo probe >> "$SSH_TEST_TRACE"
+  if [ "$SSH_TEST_SCENARIO" = 'tunnel guess failure' ]; then exit 1; fi
+  printf 'HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\n\r\n'
+  exit 0
+fi
+case "$SSH_TEST_SCENARIO" in
+  tunnel)
+    case "$forward" in 127.0.0.1:*:localhost:5678) ;; *) exit 92 ;; esac
+    if [ "$no_shell" != yes ]; then exit 93; fi ;;
+  'tunnel override')
+    case "$forward" in 127.0.0.1:*:localhost:8080) ;; *) exit 92 ;; esac
+    if [ "$no_shell" != yes ]; then exit 93; fi ;;
+  'tunnel guess')
+    case "$forward" in 127.0.0.1:*:localhost:80) ;; *) exit 92 ;; esac ;;
+esac
 echo shell >> "$SSH_TEST_TRACE"
 echo 'remote shell output'
 case "$SSH_TEST_SCENARIO" in
@@ -83,7 +106,11 @@ esac
 				case "GET /projects":
 					fmt.Fprint(w, `[{"id":"p1","name":"prod"}]`)
 				case "GET /projects/p1/services":
-					fmt.Fprint(w, `[{"id":"s1","name":"api","projectId":"p1"}]`)
+					port := 5678
+					if strings.HasPrefix(scenario, "tunnel guess") || scenario == "tunnel override" {
+						port = 0
+					}
+					fmt.Fprintf(w, `[{"id":"s1","name":"api","projectId":"p1","network":{"public":false,"internalPort":%d}}]`, port)
 				case "POST /ssh-keys":
 					var body struct {
 						Name      string    `json:"name"`
@@ -147,15 +174,26 @@ esac
 			command.SetIn(strings.NewReader(""))
 			command.SetErr(&stderr)
 			command.SetArgs([]string{"--config", filepath.Join(workspace, "config.json"), "--token", "test-token", "ssh", "api", "--ttl", "2h"})
+			if strings.HasPrefix(scenario, "tunnel") {
+				args := []string{"--config", filepath.Join(workspace, "config.json"), "--token", "test-token", "tunnel", "api", "--ttl", "2h"}
+				if scenario == "tunnel override" {
+					args = append(args, "--remote-port", "8080")
+				}
+				command.SetArgs(args)
+			}
 			err := command.ExecuteContext(ctx)
 			switch scenario {
-			case "success", "already expired":
+			case "success", "already expired", "tunnel", "tunnel override", "tunnel guess":
 				if err != nil || stdout.String() != "remote shell output\n" {
 					t.Fatalf("session: %v, output %q", err, stdout.String())
 				}
 			case "canceled":
 				if !errors.Is(err, context.Canceled) {
 					t.Fatalf("cancellation: %v", err)
+				}
+			case "tunnel guess failure":
+				if err == nil || !strings.Contains(err.Error(), "specify --remote-port") || stdout.Len() != 0 {
+					t.Fatalf("failed port guess: %v, stdout %q", err, stdout.String())
 				}
 			case "session failure":
 				var exit *exec.ExitError
@@ -181,7 +219,13 @@ esac
 			}
 			if scenario != "attach failure" && scenario != "invalid connection" {
 				data, err := os.ReadFile(trace)
-				if err != nil || string(data) != "master\nshell\nclose\n" {
+				want := "master\nshell\nclose\n"
+				if scenario == "tunnel guess" {
+					want = "master\nprobe\nshell\nclose\n"
+				} else if scenario == "tunnel guess failure" {
+					want = "master\nprobe\nclose\n"
+				}
+				if err != nil || string(data) != want {
 					t.Fatalf("SSH process lifecycle: %q %v", data, err)
 				}
 			}
@@ -240,6 +284,14 @@ func TestSSHUsageRejectsInvalidOptions(t *testing.T) {
 		{args: []string{"ssh", "api", "-N"}, message: "-N requires a local forward"},
 		{args: []string{"ssh", "api", "-L", ""}, message: "-L requires"},
 		{args: []string{"ssh", "api", "-L", "not-a-forward"}, message: "invalid SSH forwarding options"},
+		{args: []string{"tunnel"}, message: "missing required argument"},
+		{args: []string{"tunnel", "api", "extra"}, message: "too many arguments"},
+		{args: []string{"tunnel", "api", "--local-port", "-1"}, message: "--local-port must be"},
+		{args: []string{"tunnel", "api", "--local-port", "65536"}, message: "--local-port must be"},
+		{args: []string{"tunnel", "api", "--remote-port", "0"}, message: "--remote-port must be"},
+		{args: []string{"tunnel", "api", "--remote-port", "65536"}, message: "--remote-port must be"},
+		{args: []string{"tunnel", "api", "--ttl", "5m"}, message: "use 6m or longer"},
+		{args: []string{"tunnel", "api", "-o", "json"}, message: "require --output text"},
 	} {
 		stdout, _, err := runCommand(t, "http://127.0.0.1:1", test.args...)
 		if stdout != "" || err == nil || !strings.Contains(err.Error(), test.message) {
