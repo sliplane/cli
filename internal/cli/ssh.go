@@ -70,7 +70,7 @@ func (o *options) sshCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return openSSH(command, client, service, ssh, keygen, ttl, sessionArguments)
+			return openSSH(command, client, service, ssh, keygen, ttl, sessionArguments, 0)
 		},
 	}
 	command.Flags().DurationVar(&ttl, "ttl", time.Hour, "Fallback lifetime of the temporary SSH key (more than 5m, up to 720h)")
@@ -97,7 +97,7 @@ func validateSSHConnection(connection api.SSHConnection) error {
 	return nil
 }
 
-func openSSH(command *cobra.Command, client *api.Client, service api.Service, ssh, keygen string, ttl time.Duration, sessionArguments []string) (result error) {
+func openSSH(command *cobra.Command, client *api.Client, service api.Service, ssh, keygen string, ttl time.Duration, sessionArguments []string, probePort int) (result error) {
 	directory, err := os.MkdirTemp("", "slissh-")
 	if err != nil {
 		return fmt.Errorf("create private SSH directory: %w", err)
@@ -143,6 +143,11 @@ func openSSH(command *cobra.Command, client *api.Client, service api.Service, ss
 			return fmt.Errorf("SSH access did not become ready within 1 minute; retry shortly: %w", err)
 		}
 		return err
+	}
+	if probePort != 0 {
+		if err := probeHTTPPort(command.Context(), ssh, arguments, connection.Host, probePort); err != nil {
+			return err
+		}
 	}
 	if slices.Contains(sessionArguments, "-N") {
 		fmt.Fprintf(command.ErrOrStderr(), "Starting SSH tunnel to %s (Ctrl-C to stop)...\n", service.Name)

@@ -18,10 +18,11 @@ type Config struct {
 }
 
 type Profile struct {
-	S3Credentials  map[string]string `json:"s3Credentials,omitempty"`
-	OrganizationID string            `json:"organizationId"`
-	CredentialID   string            `json:"credentialId"`
-	Project        string            `json:"project,omitempty"`
+	S3Credentials    map[string]string `json:"s3Credentials,omitempty"`
+	OrganizationID   string            `json:"organizationId"`
+	OrganizationName string            `json:"organizationName,omitempty"`
+	CredentialID     string            `json:"credentialId"`
+	Project          string            `json:"project,omitempty"`
 }
 
 func ValidateProfileName(name string) error {

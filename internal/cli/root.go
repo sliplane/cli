@@ -44,6 +44,7 @@ func newCommand(baseURL, catalogURL string) *cobra.Command {
 	root.PersistentFlags().StringVarP(&options.project, "project", "p", "", "Project name or ID (overrides config default)")
 	root.PersistentFlags().StringVar(&options.configPath, "config", "", "Config file (default: OS user config directory/sliplane/config.json)")
 	root.AddCommand(options.versionCommand(), options.agentCommand(), options.authCommand(), options.profileCommand(), options.configCommand(), options.projectCommand(), options.serverCommand(), options.serviceCommand(), options.s3Command(), options.postgresCommand(), options.logsCommand(), options.deployCommand(), options.presetCommand(), options.sshCommand(), options.registryCommand(), options.sshKeyCommand())
+	root.AddCommand(options.tunnelCommand())
 	return root
 }
 
@@ -112,9 +113,21 @@ func (o *options) checkOrganization(identity api.Identity) error {
 	}
 	profile, exists := o.preferences.Profiles[o.profileName]
 	if exists && identity.OrganizationID != profile.OrganizationID {
-		return fmt.Errorf("token belongs to organization %q, but profile %q is bound to %q; select the matching profile or supply a token for this team", identity.OrganizationID, o.profileName, profile.OrganizationID)
+		return fmt.Errorf("token is for team %q, but profile %q is bound to team %q; run sliplane auth login to switch teams or select a matching --profile", o.teamName(identity, identity.OrganizationID), o.profileName, o.teamName(identity, profile.OrganizationID))
 	}
 	return nil
+}
+
+func (o *options) teamName(identity api.Identity, id string) string {
+	if name := identity.OrganizationName(id); name != "" {
+		return name
+	}
+	for _, profile := range o.preferences.Profiles {
+		if profile.OrganizationID == id && profile.OrganizationName != "" {
+			return profile.OrganizationName
+		}
+	}
+	return "name unavailable (log in through your browser to refresh)"
 }
 
 func (o *options) verifyIdentity(ctx context.Context, client *api.Client) error {

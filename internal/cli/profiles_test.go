@@ -203,21 +203,28 @@ func TestTokenOnlyCIAndExplicitSelection(t *testing.T) {
 	}
 }
 
-func TestFailedProfileSaveRemovesNewCredential(t *testing.T) {
+func TestFailedProfileOverwritePreservesCredentials(t *testing.T) {
 	keyring.MockInit()
 	parent := filepath.Join(t.TempDir(), "file")
 	if err := os.WriteFile(parent, []byte("not a directory"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	options := options{profileName: "work", configPath: filepath.Join(parent, "config.json"), preferences: config.Config{Profiles: map[string]config.Profile{}}}
+	previous := config.Profile{OrganizationID: "org_old", CredentialID: "old-key", Project: "old-project", S3Credentials: map[string]string{"bucket": "s3_old"}}
+	for _, reference := range []string{"old-key", "s3_old"} {
+		if err := auth.Save(reference, "old-secret"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	options := options{profileName: "work", configPath: filepath.Join(parent, "config.json"), preferences: config.Config{Profiles: map[string]config.Profile{"work": previous}}}
 	if err := options.saveLogin("new-token", api.Identity{OrganizationID: "org_work"}); err == nil {
 		t.Fatal("save should fail")
 	}
-	credentialID := options.preferences.Profiles["work"].CredentialID
-	if credentialID == "" {
-		t.Fatal("test did not exercise credential save")
+	if options.preferences.Profiles["work"].CredentialID != "old-key" {
+		t.Fatal("failed save changed the profile")
 	}
-	if _, _, err := auth.Resolve("", false, "", credentialID); err == nil {
-		t.Fatal("failed config save left a credential")
+	for _, reference := range []string{"old-key", "s3_old"} {
+		if value, err := auth.Load(reference); err != nil || value != "old-secret" {
+			t.Fatal("failed save removed previous credentials", err)
+		}
 	}
 }
