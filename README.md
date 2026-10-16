@@ -1,5 +1,7 @@
 # Sliplane CLI
 
+![Status: alpha](https://img.shields.io/badge/status-alpha-orange)
+
 A command-line interface for [Sliplane](https://sliplane.io). Deploy and manage
 services, servers, S3 buckets, and PostgreSQL databases from your terminal.
 
