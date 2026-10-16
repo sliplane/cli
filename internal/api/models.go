@@ -6,10 +6,25 @@ import (
 )
 
 type Identity struct {
-	AuthType       string          `json:"authType"`
-	OrganizationID string          `json:"organizationId"`
-	TokenType      string          `json:"tokenType"`
-	User           json.RawMessage `json:"user"`
+	AuthType               string                 `json:"authType"`
+	OrganizationID         string                 `json:"organizationId"`
+	TokenType              string                 `json:"tokenType"`
+	User                   json.RawMessage        `json:"user"`
+	AvailableOrganizations []IdentityOrganization `json:"availableOrganizations,omitempty"`
+}
+
+type IdentityOrganization struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (identity Identity) OrganizationName(id string) string {
+	for _, organization := range identity.AvailableOrganizations {
+		if organization.ID == id {
+			return organization.Name
+		}
+	}
+	return ""
 }
 
 type Project struct {

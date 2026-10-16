@@ -57,6 +57,11 @@ the `sliplane` binary in a directory on your PATH.
 Use `sliplane --help` to explore commands, or append `--help` to any command
 for its options.
 
+Logging in to a different team prompts you to overwrite the current profile,
+create a new profile, or cancel. Overwriting clears the previous team's saved
+project and S3 credentials. Creating a profile keeps the old one and selects the
+new one. For scripts, use `sliplane auth login --profile NAME` with a new name.
+
 ## Project settings
 
 Save a default project for your current profile:
@@ -69,6 +74,21 @@ Override it for a single command with `--project`:
 
 ```sh
 sliplane service list --project another-project
+```
+
+## Connect to a service
+
+```sh
+sliplane tunnel my-service
+```
+
+Uses the service's internal port locally if available, otherwise a free port,
+and prints the local address to connect to.
+If the service port is unknown, it tries HTTP on port 80.
+Press Ctrl-C to close the tunnel. To choose ports yourself:
+
+```sh
+sliplane tunnel my-service --local-port 8080 --remote-port 3000
 ```
 
 ## Building from source

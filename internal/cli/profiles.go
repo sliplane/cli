@@ -5,16 +5,18 @@ import (
 	"sort"
 
 	"github.com/spf13/cobra"
+	"sliplane-cli/internal/api"
 	"sliplane-cli/internal/auth"
 	"sliplane-cli/internal/config"
 )
 
 type profileSummary struct {
-	Name           string `json:"name"`
-	Active         bool   `json:"active"`
-	Default        bool   `json:"default"`
-	OrganizationID string `json:"organizationId"`
-	Project        string `json:"project,omitempty"`
+	Name             string `json:"name"`
+	Active           bool   `json:"active"`
+	Default          bool   `json:"default"`
+	OrganizationID   string `json:"organizationId"`
+	OrganizationName string `json:"organizationName,omitempty"`
+	Project          string `json:"project,omitempty"`
 }
 
 func (o *options) profileCommand() *cobra.Command {
@@ -24,16 +26,16 @@ func (o *options) profileCommand() *cobra.Command {
 		RunE: func(command *cobra.Command, _ []string) error {
 			profiles := []profileSummary{}
 			for name, profile := range o.preferences.Profiles {
-				profiles = append(profiles, profileSummary{Name: name, Active: name == o.profileName, Default: name == o.preferences.ActiveProfile, OrganizationID: profile.OrganizationID, Project: profile.Project})
+				profiles = append(profiles, profileSummary{Name: name, Active: name == o.profileName, Default: name == o.preferences.ActiveProfile, OrganizationID: profile.OrganizationID, OrganizationName: profile.OrganizationName, Project: profile.Project})
 			}
 			sort.Slice(profiles, func(i, j int) bool { return profiles[i].Name < profiles[j].Name })
-			rows := [][]string{{"NAME", "ACTIVE", "ORGANIZATION", "PROJECT"}}
+			rows := [][]string{{"NAME", "ACTIVE", "TEAM", "PROJECT"}}
 			for _, profile := range profiles {
 				marker := ""
 				if profile.Active {
 					marker = "*"
 				}
-				rows = append(rows, []string{profile.Name, marker, profile.OrganizationID, profile.Project})
+				rows = append(rows, []string{profile.Name, marker, o.teamName(api.Identity{}, profile.OrganizationID), profile.Project})
 			}
 			return o.print(command, profiles, rows)
 		},

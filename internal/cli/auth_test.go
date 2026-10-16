@@ -67,7 +67,7 @@ func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	t.Setenv("SLIPLANE_PROFILE", "")
 	keyring.MockInit()
 	path := filepath.Join(t.TempDir(), "config.json")
-	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work"}}}
+	preferences := config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work", Project: "production", S3Credentials: map[string]string{"bucket": "s3_work"}}}}
 	if err := config.Save(path, preferences); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestLoginVerifiesBeforeSaving(t *testing.T) {
 		t.Fatal("rejected token overwrote keychain", err)
 	}
 	validServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `{"authType":"apikey","organizationId":"org1","tokenType":"ro","user":{}}`)
+		fmt.Fprint(w, `{"authType":"oauth","organizationId":"org1","tokenType":"ro","user":{},"availableOrganizations":[{"id":"org1","name":"Work Team"}]}`)
 	}))
 	defer validServer.Close()
 	if _, _, err := runProfileCommand(t, validServer.URL, path, "auth", "login", "--token", "verified-token", "-o", "json"); err != nil {
@@ -102,5 +102,9 @@ func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	saved, err := config.Load(path)
 	if err != nil || saved.Profiles["work"].CredentialID != "credential_work" {
 		t.Fatal("rotation changed credential reference", err)
+	}
+	profile := saved.Profiles["work"]
+	if profile.OrganizationName != "Work Team" || profile.Project != "production" || profile.S3Credentials["bucket"] != "s3_work" {
+		t.Fatalf("same-team login lost settings or did not save the team name: %+v", profile)
 	}
 }
