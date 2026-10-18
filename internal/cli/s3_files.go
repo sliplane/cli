@@ -49,7 +49,7 @@ func (o *options) s3ListCommand() *cobra.Command {
 			rows[0] = append(rows[0], "TYPE")
 		}
 		for _, entry := range entries {
-			size := strconv.FormatInt(entry.Size, 10) + " B"
+			size := formatBytes(entry.Size)
 			if entry.Type == "directory" {
 				size = "-"
 			}
