@@ -70,8 +70,8 @@ github.com/MichaelS11/go-cql-driver v0.1.1 h1:ntFKov/39Tl36HckP4tzld3XMeyDYHHO00
 github.com/MichaelS11/go-cql-driver v0.1.1/go.mod h1:rMwGk5bMWiYI/If6r6dbqEfZG6nQLvqJHTplv5yTDaw=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/NimbleMarkets/ntcharts/v2 v2.6.0 h1:t30voczOMic9NoxcS75sqbYSPFpOiPs+rUKN+3fpwOc=
-github.com/NimbleMarkets/ntcharts/v2 v2.6.0/go.mod h1:w+5yLPICduptuEeOk8ogPi2gYU9qmaim1Elol3TUI1k=
+github.com/NimbleMarkets/ntcharts/v2 v2.8.0 h1:80ticj4+1zmJKswSd2QJHS/n022BaW8jio4ZGJrhcmc=
+github.com/NimbleMarkets/ntcharts/v2 v2.8.0/go.mod h1:w+5yLPICduptuEeOk8ogPi2gYU9qmaim1Elol3TUI1k=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 h1:TngWCqHvy9oXAN6lEVMRuU21PR1EtLVZJmdB18Gu3Rw=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/RaduBerinde/axisds v0.1.0 h1:YItk/RmU5nvlsv/awo2Fjx97Mfpt4JfgtEVAGPrLdz8=
