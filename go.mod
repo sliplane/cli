@@ -3,7 +3,7 @@ module sliplane-cli
 go 1.26.10
 
 require (
-	charm.land/bubbletea/v2 v2.0.10
+	charm.land/bubbletea/v2 v2.1.0
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/NimbleMarkets/ntcharts/v2 v2.6.0
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
 	github.com/aws/smithy-go v1.28.1
 	github.com/charmbracelet/colorprofile v0.4.3
-	github.com/charmbracelet/x/ansi v0.11.8
+	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-billy/v5 v5.9.2
 	github.com/gohxs/readline v0.0.0-20171011095936-a780388e6e7c
@@ -37,7 +37,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.3 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260928045949-bbf040aedf25 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4 // indirect
 	github.com/charmbracelet/x/exp/ordered v0.1.0 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
