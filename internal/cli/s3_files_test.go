@@ -167,3 +167,51 @@ func TestS3ReadOnlyTokenCannotUpload(t *testing.T) {
 		t.Fatalf("read-only upload: %q %v", output, err)
 	}
 }
+
+func TestS3Remove(t *testing.T) {
+	t.Setenv("SLIPLANE_PROFILE", "")
+	t.Setenv("SLIPLANE_S3_ACCESS_KEY_ID", "s3-access")
+	t.Setenv("SLIPLANE_S3_SECRET_ACCESS_KEY", "s3-secret")
+	var deleted []string
+	objects := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			if r.URL.Path == "/uploads/missing.txt" {
+				w.WriteHeader(http.StatusNotFound)
+			}
+		case http.MethodDelete:
+			deleted = append(deleted, r.URL.Path)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Errorf("unexpected S3 request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer objects.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/me":
+			fmt.Fprint(w, `{"organizationId":"org_work","tokenType":"rw","user":{}}`)
+		case "/buckets":
+			fmt.Fprintf(w, `[{"id":"sb_one","name":"uploads","endpoint":%q}]`, objects.URL)
+		default:
+			t.Errorf("unexpected API request %s", r.URL.Path)
+		}
+	}))
+	defer control.Close()
+	for _, test := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"missing.txt", "--yes"}, "not found"},
+		{[]string{"report.pdf"}, "--yes"},
+	} {
+		output, _, err := runCommand(t, control.URL, append([]string{"s3", "rm", "uploads"}, test.args...)...)
+		if err == nil || !strings.Contains(err.Error(), test.want) || output != "" {
+			t.Fatalf("remove %v: %q %v", test.args, output, err)
+		}
+	}
+	output, _, err := runCommand(t, control.URL, "s3", "rm", "uploads", "report.pdf", "--yes", "-o", "json")
+	if err != nil || !strings.Contains(output, `"deleted":true`) || len(deleted) != 1 || deleted[0] != "/uploads/report.pdf" {
+		t.Fatalf("remove: %q %v %v", output, err, deleted)
+	}
+}
