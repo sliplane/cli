@@ -3,16 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"net/netip"
-	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/buildinfo"
 )
 
 // checkPostgresAccess skips public-IP detection when the entire destination family is already allowed.
@@ -23,52 +18,25 @@ func (o *options) checkPostgresAccess(command *cobra.Command, client *api.Client
 			return nil
 		}
 	}
-	source, err := postgresSourceIP(command.Context(), destination)
+	source, err := postgresSourceIP(command.Context(), client, destination)
 	if err != nil {
 		return err
 	}
 	return o.ensurePostgresAccess(command, client, database, source)
 }
 
-// postgresSourceIP detects the direct public address in the database connection's address family.
-func postgresSourceIP(ctx context.Context, destination net.IP) (netip.Addr, error) {
-	endpoint := "https://api.ipify.org"
+// postgresSourceIP asks the API for the caller's public address in the database connection's address family.
+func postgresSourceIP(ctx context.Context, client *api.Client, destination net.IP) (netip.Addr, error) {
 	network := "tcp4"
 	if destination.To4() == nil {
-		endpoint = "https://api6.ipify.org"
 		network = "tcp6"
 	}
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
-	transport := &http.Transport{
-		// An HTTP proxy's public address need not be the source of a direct PostgreSQL connection.
-		DialContext: func(ctx context.Context, _, address string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, address)
-		},
-	}
-	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 10 * time.Second,
-		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return netip.Addr{}, err
-	}
-	request.Header.Set("User-Agent", "sliplane-cli/"+buildinfo.Version)
-	response, err := client.Do(request)
+	address, err := client.ClientIP(ctx, network)
 	if err != nil {
 		return netip.Addr{}, fmt.Errorf("detect public IP for PostgreSQL access: %w", err)
 	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return netip.Addr{}, fmt.Errorf("detect public IP for PostgreSQL access: HTTP %d", response.StatusCode)
-	}
-	body, err := io.ReadAll(io.LimitReader(response.Body, 128))
-	if err != nil {
-		return netip.Addr{}, fmt.Errorf("read public IP: %w", err)
-	}
-	address, err := netip.ParseAddr(strings.TrimSpace(string(body)))
-	if err != nil || address.Zone() != "" || address.Is4() != (destination.To4() != nil) {
-		return netip.Addr{}, fmt.Errorf("public IP service returned an invalid %s address", network)
+	if address.Is4() != (destination.To4() != nil) {
+		return netip.Addr{}, fmt.Errorf("detect public IP for PostgreSQL access: API returned an address outside %s", network)
 	}
 	return address, nil
 }

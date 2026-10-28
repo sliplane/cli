@@ -113,3 +113,37 @@ func TestClientCancellation(t *testing.T) {
 		t.Fatalf("expected cancellation: %v", err)
 	}
 }
+
+func TestClientIP(t *testing.T) {
+	for _, test := range []struct {
+		name, header, want string
+	}{
+		{"ipv4", "203.0.113.7", "203.0.113.7"},
+		{"ipv4-mapped ipv6", "::ffff:203.0.113.7", "203.0.113.7"},
+		{"missing", "", ""},
+		{"invalid", "203.0.113.7, 198.51.100.1", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/me" || r.Header.Get("Authorization") != "Bearer test-token" {
+					t.Errorf("unexpected request %s", r.URL)
+				}
+				if test.header != "" {
+					w.Header().Set("Sliplane-Client-IP", test.header)
+				}
+				fmt.Fprint(w, `{"organizationId":"org1"}`)
+			}))
+			defer server.Close()
+			address, err := New(server.URL, "test-token").ClientIP(context.Background(), "tcp4")
+			if test.want == "" {
+				if err == nil {
+					t.Fatalf("expected an error, got %s", address)
+				}
+				return
+			}
+			if err != nil || address.String() != test.want {
+				t.Fatalf("got %s %v; want %s", address, err, test.want)
+			}
+		})
+	}
+}
