@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install a checksum-verified release without sudo.
+# Install a signed, checksum-verified release without sudo.
 set -eu
 
 fail() {
@@ -11,6 +11,15 @@ fail() {
 download() {
   curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --connect-timeout 10 --max-time 300 --retry 2 --output "$2" "$1"
+}
+
+# write_release_signers writes the YubiKeys trusted to sign releases. It must
+# match .github/allowed_signers; the installer tests enforce this.
+write_release_signers() {
+  cat > "$1" <<'SIGNERS'
+sliplane-release namespaces="git,sliplane-release" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIEMxU+DK5mRMKnlZCp0U4+UzaJK3KS/FOkbi9ZnKtXQzAAAAFHNzaDpzbGlwbGFuZS1yZWxlYXNl yubikey-main
+sliplane-release namespaces="git,sliplane-release" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIJ0aJwmT4kCuEjNUVoDqluxHf2AVT9gUX0KbqqG/Ni85AAAAFHNzaDpzbGlwbGFuZS1yZWxlYXNl yubikey-backup
+SIGNERS
 }
 
 executable_version() {
@@ -97,6 +106,7 @@ install_sliplane() {
   for dependency in curl tar awk; do
     command -v "$dependency" >/dev/null 2>&1 || fail "Install $dependency and try again."
   done
+  command -v ssh-keygen >/dev/null 2>&1 || fail 'Install OpenSSH 8.2 or newer (ssh-keygen) to verify the release signature and try again.'
 
   case "$(uname -s)" in
     Darwin) platform=darwin ;;
@@ -151,6 +161,12 @@ install_sliplane() {
   printf 'Downloading Sliplane %s…\n' "$version"
   download "$release/$archive" "$temporary_directory/$archive" || fail "Could not download $archive."
   download "$release/checksums.txt" "$temporary_directory/checksums.txt" || fail 'Could not download release checksums.'
+  download "$release/checksums.txt.sig" "$temporary_directory/checksums.txt.sig" \
+    || fail 'Could not download the release signature. Only releases signed by a Sliplane maintainer can be installed.'
+  write_release_signers "$temporary_directory/allowed_signers"
+  ssh-keygen -Y verify -f "$temporary_directory/allowed_signers" -I sliplane-release -n sliplane-release \
+    -s "$temporary_directory/checksums.txt.sig" < "$temporary_directory/checksums.txt" >/dev/null 2>&1 \
+    || fail 'Release signature verification failed (this requires OpenSSH 8.2 or newer). The existing installation was not changed.'
   expected=$(awk -v file="$archive" '$2 == file { count++; hash=$1 } END { if (count != 1) exit 1; print hash }' "$temporary_directory/checksums.txt") \
     || fail "The release must contain exactly one checksum for $archive."
   if [ "$checksum_tool" = sha256sum ]; then

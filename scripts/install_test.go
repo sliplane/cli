@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -41,6 +42,10 @@ func TestInstall(t *testing.T) {
 		{name: "bad checksum", system: "Linux", architecture: "x86_64", failure: "checksum"},
 		{name: "missing checksum", system: "Linux", architecture: "x86_64", failure: "missing"},
 		{name: "duplicate checksum", system: "Linux", architecture: "x86_64", failure: "duplicate"},
+		{name: "unsigned release", system: "Linux", architecture: "x86_64", failure: "unsigned", wantMessage: "Could not download the release signature"},
+		{name: "signature from untrusted key", system: "Linux", architecture: "x86_64", failure: "untrusted", wantMessage: "Release signature verification failed"},
+		{name: "signature for another purpose", system: "Linux", architecture: "x86_64", failure: "namespace", wantMessage: "Release signature verification failed"},
+		{name: "checksums changed after signing", system: "Linux", architecture: "x86_64", failure: "tampered", wantMessage: "Release signature verification failed"},
 		{name: "failed download", system: "Linux", architecture: "x86_64", failure: "download"},
 		{name: "invalid archive", system: "Linux", architecture: "x86_64", failure: "archive"},
 		{name: "unsupported system", system: "FreeBSD", architecture: "x86_64", failure: "platform"},
@@ -118,6 +123,25 @@ func TestInstall(t *testing.T) {
 				}
 			}
 			command := installerCommand(t, directory, installDirectory, "1.2.3", test.system, test.architecture, test.version)
+			switch test.failure {
+			case "unsigned":
+				if err := os.Remove(filepath.Join(directory, "checksums.txt.sig")); err != nil {
+					t.Fatal(err)
+				}
+			case "untrusted":
+				signChecksums(t, directory, newSigningKey(t, t.TempDir()), "sliplane-release")
+			case "namespace":
+				signChecksums(t, directory, filepath.Join(command.Dir, "trusted-key"), "git")
+			case "tampered":
+				checksums, err := os.OpenFile(filepath.Join(directory, "checksums.txt"), os.O_APPEND|os.O_WRONLY, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				fmt.Fprintf(checksums, "%s  other.tar.gz\n", strings.Repeat("0", 64))
+				if err := checksums.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
 			home := t.TempDir()
 			if test.failure != "" {
 				command.Args = append(command.Args, "--setup-path")
@@ -131,6 +155,9 @@ func TestInstall(t *testing.T) {
 			if test.failure != "" {
 				if err == nil || !bytes.Equal(installed, original) {
 					t.Fatalf("failed install changed the binary or succeeded: %v\n%s", err, output)
+				}
+				if !strings.Contains(string(output), test.wantMessage) {
+					t.Fatalf("missing error %q: %s", test.wantMessage, output)
 				}
 				if _, err := os.Stat(filepath.Join(home, ".bashrc")); !os.IsNotExist(err) {
 					t.Fatal("failed installation changed shell configuration")
@@ -279,6 +306,7 @@ func TestInstallPath(t *testing.T) {
 				t.Fatalf("profile PATH does not select installation: %v %s", err, path)
 			}
 			repeat := exec.Command("sh", "install.sh", "--setup-path")
+			repeat.Dir = command.Dir
 			repeat.Env = command.Env
 			repeatOutput, err := repeat.CombinedOutput()
 			if err != nil {
@@ -353,9 +381,86 @@ func TestReleaseInstall(t *testing.T) {
 	}
 }
 
+// TestReleaseSigners keeps the installer's embedded keys identical to the
+// repository's list and accepts only hardware-backed release keys.
+func TestReleaseSigners(t *testing.T) {
+	contents, err := os.ReadFile(filepath.Join("..", ".github", "allowed_signers"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var signers []string
+	for _, line := range strings.Split(string(contents), "\n") {
+		if line != "" && !strings.HasPrefix(line, "#") {
+			signers = append(signers, line+"\n")
+		}
+	}
+	if len(signers) == 0 {
+		t.Fatal(".github/allowed_signers lists no release keys")
+	}
+	for _, signer := range signers {
+		fields := strings.Fields(signer)
+		if len(fields) != 5 || fields[0] != "sliplane-release" || fields[1] != `namespaces="git,sliplane-release"` ||
+			fields[2] != "sk-ssh-ed25519@openssh.com" {
+			t.Fatalf("each release key must be a named FIDO2 key for the sliplane-release principal: %q", signer)
+		}
+	}
+	installer, err := os.ReadFile("install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	match := releaseSigners.FindSubmatch(installer)
+	if match == nil || string(match[1]) != strings.Join(signers, "") {
+		t.Fatal("install.sh release signers differ from .github/allowed_signers")
+	}
+}
+
+var releaseSigners = regexp.MustCompile(`(?s)<<'SIGNERS'\n(.*?)SIGNERS\n`)
+
+func newSigningKey(t *testing.T, directory string) string {
+	t.Helper()
+	key := filepath.Join(directory, "trusted-key")
+	if output, err := exec.Command("ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "test", "-f", key).CombinedOutput(); err != nil {
+		t.Fatalf("generate signing key: %v\n%s", err, output)
+	}
+	return key
+}
+
+func signChecksums(t *testing.T, releaseDirectory, key, namespace string) {
+	t.Helper()
+	checksums := filepath.Join(releaseDirectory, "checksums.txt")
+	if err := os.Remove(checksums + ".sig"); err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if output, err := exec.Command("ssh-keygen", "-q", "-Y", "sign", "-f", key, "-n", namespace, checksums).CombinedOutput(); err != nil {
+		t.Fatalf("sign checksums: %v\n%s", err, output)
+	}
+}
+
+// installerCommand signs the release with a temporary key and runs a copy of
+// install.sh that trusts that key alongside an unrelated one, so any listed key
+// is enough.
 func installerCommand(t *testing.T, releaseDirectory, installDirectory, version, system, architecture string, arguments ...string) *exec.Cmd {
 	t.Helper()
 	commands := t.TempDir()
+	var signers string
+	for _, key := range []string{newSigningKey(t, t.TempDir()), newSigningKey(t, commands)} {
+		public, err := os.ReadFile(key + ".pub")
+		if err != nil {
+			t.Fatal(err)
+		}
+		fields := strings.Fields(string(public))
+		signers += fmt.Sprintf("sliplane-release namespaces=\"git,sliplane-release\" %s %s test\n", fields[0], fields[1])
+	}
+	signChecksums(t, releaseDirectory, filepath.Join(commands, "trusted-key"), "sliplane-release")
+	installer, err := os.ReadFile("install.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !releaseSigners.Match(installer) {
+		t.Fatal("install.sh has no release signers block")
+	}
+	installer = releaseSigners.ReplaceAllLiteral(installer, []byte("<<'SIGNERS'\n"+signers+"SIGNERS\n"))
+	writeFile(t, filepath.Join(commands, "install.sh"), installer, 0600)
 	writeFile(t, filepath.Join(commands, "uname"), []byte("#!/bin/sh\ncase \"$1\" in\n-s) echo \"$TEST_SYSTEM\";;\n-m) echo \"$TEST_ARCH\";;\nesac\n"), 0755)
 	writeFile(t, filepath.Join(commands, "curl"), []byte(`#!/bin/sh
 set -eu
@@ -384,6 +489,7 @@ esac
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	t.Cleanup(cancel)
 	command := exec.CommandContext(ctx, "sh", shellArguments...)
+	command.Dir = commands
 	command.Env = append(os.Environ(), "PATH="+commands+":"+os.Getenv("PATH"), "SLIPLANE_INSTALL_DIR="+installDirectory,
 		"HOME="+t.TempDir(), "SHELL=/bin/bash", "ZDOTDIR=",
 		"TEST_RELEASE_DIR="+releaseDirectory, "TEST_VERSION="+version, "TEST_SYSTEM="+system, "TEST_ARCH="+architecture)

@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Wait a week before proposing new versions so compromised releases are
+  # usually caught and pulled before they reach this repository.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

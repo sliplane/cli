@@ -23,13 +23,29 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # Fixed metadata makes archives byte-for-byte reproducible, so maintainers
+    # can rebuild a release locally before signing its checksums.
+    builds_info:
+      mtime: "{{ .CommitDate }}"
+      mode: 0755
+      owner: root
+      group: root
     files:
-      - LICENSE
-      - NOTICE
+      - src: LICENSE
+        info: &file_info
+          mtime: "{{ .CommitDate }}"
+          mode: 0644
+          owner: root
+          group: root
+      - src: NOTICE
+        info: *file_info
 
 checksum:
   name_template: checksums.txt
   algorithm: sha256
+  # The maintainer signature on checksums.txt then covers the installer too.
+  extra_files:
+    - glob: scripts/install.sh
 
 release:
   github:
