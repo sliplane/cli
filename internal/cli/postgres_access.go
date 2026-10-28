@@ -81,7 +81,7 @@ func (o *options) ensurePostgresAccess(command *cobra.Command, client *api.Clien
 		return nil
 	}
 	entries := append(fresh.IPAllowList, api.PostgresIPRange{Source: source, Description: "Sliplane CLI"})
-	if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
+	if _, err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
 		return fmt.Errorf("add PostgreSQL allowlist rule for %s: %w", source, err)
 	}
 	fmt.Fprintf(command.ErrOrStderr(), "Added allowlist rule %s. Remove it with sliplane postgres allowlist remove %s %s.\n", source, database.ID, source)

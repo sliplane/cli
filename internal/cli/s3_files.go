@@ -199,3 +199,52 @@ func (o *options) s3DownloadCommand() *cobra.Command {
 	command.Flags().BoolVar(&force, "force", false, "Replace an existing local file")
 	return command
 }
+
+func (o *options) s3RemoveCommand() *cobra.Command {
+	var yes bool
+	command := &cobra.Command{Use: "remove <bucket> <key>", Aliases: []string{"rm"}, Short: "Delete a file from a bucket", Args: validateArguments,
+		Long:    "Delete one object. In a versioned bucket, earlier versions are kept.\nRequires confirmation in a terminal, or --yes for noninteractive use.",
+		Example: "  sliplane s3 rm uploads report.pdf\n  sliplane s3 rm uploads logs/old.txt --yes",
+		RunE: func(command *cobra.Command, args []string) error {
+			if args[1] == "" {
+				return errors.New("object key must not be empty")
+			}
+			apiClient, bucket, err := o.s3Access(command, args[0])
+			if err != nil {
+				return err
+			}
+			if err := o.requireS3Write(); err != nil {
+				return err
+			}
+			client, err := o.objectClient(command, apiClient, bucket)
+			if err != nil {
+				return err
+			}
+			exists, err := client.Exists(command.Context(), bucket.Name, args[1])
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return fmt.Errorf("object %q not found in bucket %q", args[1], bucket.Name)
+			}
+			if !yes {
+				if !o.canPrompt(command) {
+					return errors.New("object deletion requires confirmation; use --yes or rerun in a terminal")
+				}
+				approved, err := confirm(command.Context(), command.InOrStdin(), command.ErrOrStderr(), fmt.Sprintf("Delete %q from bucket %q?", args[1], bucket.Name))
+				if err != nil {
+					return err
+				}
+				if !approved {
+					return errors.New("object deletion canceled")
+				}
+			}
+			if err := client.Delete(command.Context(), bucket.Name, args[1]); err != nil {
+				return err
+			}
+			return o.print(command, map[string]any{"bucket": bucket.Name, "key": args[1], "deleted": true}, [][]string{{"Deleted", args[1]}, {"Bucket", bucket.Name}})
+		},
+	}
+	command.Flags().BoolVarP(&yes, "yes", "y", false, "Confirm object deletion")
+	return command
+}

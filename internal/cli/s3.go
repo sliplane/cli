@@ -41,7 +41,7 @@ func (o *options) s3Command() *cobra.Command {
 		defaultRegion = "us-east-1"
 	}
 	command.PersistentFlags().StringVar(&o.s3Region, "region", defaultRegion, "S3 signing region")
-	command.AddCommand(o.s3DeleteCommand(), o.s3UpdateCommand(), o.s3CORSCommand(), o.s3CreateCommand(), o.s3KeyCommand(), o.s3ListCommand(), o.s3UploadCommand(), o.s3DownloadCommand())
+	command.AddCommand(o.s3DeleteCommand(), o.s3UpdateCommand(), o.s3CORSCommand(), o.s3CreateCommand(), o.s3KeyCommand(), o.s3ListCommand(), o.s3UploadCommand(), o.s3DownloadCommand(), o.s3RemoveCommand())
 	return command
 }
 

@@ -82,7 +82,7 @@ func TestS3KeyLifecycle(t *testing.T) {
 		}
 	}
 	for _, query := range []string{"ci", "sk_cli"} {
-		output, _, err = runProfileCommand(t, server.URL, configPath, "--token", "api-token", "s3", "key", "delete", "uploads", query, "-o", "json")
+		output, _, err = runProfileCommand(t, server.URL, configPath, "--token", "api-token", "s3", "key", "delete", "uploads", query, "--yes", "-o", "json")
 		if err != nil || !json.Valid([]byte(output)) || !strings.Contains(output, `"deleted":true`) {
 			t.Fatalf("delete: %q %v", output, err)
 		}
@@ -187,10 +187,14 @@ func TestS3KeyDeleteResolution(t *testing.T) {
 	}))
 	defer server.Close()
 	for _, test := range []struct{ query, want string }{{"ci", "ambiguous"}, {"missing", "not found"}, {"sk_b", "cannot revoke key"}} {
-		output, _, err := runProfileCommand(t, server.URL, configPath, "--token", "api-token", "s3", "key", "delete", "uploads", test.query)
+		output, _, err := runProfileCommand(t, server.URL, configPath, "--token", "api-token", "s3", "key", "delete", "uploads", test.query, "--yes")
 		if err == nil || !strings.Contains(err.Error(), test.want) || output != "" {
 			t.Fatalf("delete %q: %q %v", test.query, output, err)
 		}
+	}
+	output, _, err := runProfileCommand(t, server.URL, configPath, "--token", "api-token", "s3", "key", "delete", "uploads", "sk_a")
+	if err == nil || !strings.Contains(err.Error(), "--yes") || output != "" {
+		t.Fatalf("unconfirmed delete: %q %v", output, err)
 	}
 	saved, err := config.Load(configPath)
 	if err != nil || saved.Profiles["work"].S3Credentials["sb_one"] != "s3_saved" {

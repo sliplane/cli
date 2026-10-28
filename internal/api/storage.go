@@ -33,13 +33,15 @@ func (c *Client) PostgresDatabase(ctx context.Context, id string) (PostgresDatab
 	return database, err
 }
 
-// SetPostgresAllowList replaces the allowlist using only writable fields from each entry.
-func (c *Client) SetPostgresAllowList(ctx context.Context, id string, entries []PostgresIPRange) error {
+// SetPostgresAllowList replaces the allowlist using only writable fields from each entry and returns the saved rules.
+func (c *Client) SetPostgresAllowList(ctx context.Context, id string, entries []PostgresIPRange) ([]PostgresIPRange, error) {
 	rules := make([]map[string]string, 0, len(entries))
 	for _, entry := range entries {
 		rules = append(rules, map[string]string{"source": entry.Source, "description": entry.Description})
 	}
-	return c.request(ctx, http.MethodPatch, "/postgres/"+url.PathEscape(id), map[string]any{"ipAllowList": rules}, nil)
+	var database PostgresDatabase
+	err := c.request(ctx, http.MethodPatch, "/postgres/"+url.PathEscape(id), map[string]any{"ipAllowList": rules}, &database)
+	return database.IPAllowList, err
 }
 
 func (c *Client) CreateBucketKey(ctx context.Context, bucketID, name string) (CreatedBucketKey, error) {

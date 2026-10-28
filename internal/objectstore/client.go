@@ -235,3 +235,11 @@ func (c *Client) Exists(ctx context.Context, bucket, key string) (bool, error) {
 	}
 	return false, c.requestError("inspect object", err)
 }
+
+// Delete removes an object; in a versioned bucket, S3 keeps earlier versions behind a delete marker.
+func (c *Client) Delete(ctx context.Context, bucket, key string) error {
+	if _, err := c.s3.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: aws.String(bucket), Key: aws.String(key)}); err != nil {
+		return c.requestError("delete object", err)
+	}
+	return nil
+}

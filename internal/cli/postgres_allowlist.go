@@ -47,16 +47,18 @@ func (o *options) postgresAllowlistAddCommand() *cobra.Command {
 					return o.printPostgresAllowlist(command, entries)
 				}
 				entries[index].Description = description
-				if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
+				saved, err := client.SetPostgresAllowList(command.Context(), database.ID, entries)
+				if err != nil {
 					return err
 				}
-				return o.printPostgresAllowlist(command, entries)
+				return o.printPostgresAllowlist(command, saved)
 			}
 			entries = append(entries, api.PostgresIPRange{Source: source, Description: description})
-			if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
+			saved, err := client.SetPostgresAllowList(command.Context(), database.ID, entries)
+			if err != nil {
 				return err
 			}
-			return o.printPostgresAllowlist(command, entries)
+			return o.printPostgresAllowlist(command, saved)
 		},
 	}
 	command.Flags().StringVar(&description, "description", "", "Optional label for this rule")
@@ -82,10 +84,11 @@ func (o *options) postgresAllowlistRemoveCommand() *cobra.Command {
 			if len(entries) == len(database.IPAllowList) {
 				return fmt.Errorf("allowlist rule %q not found", args[1])
 			}
-			if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
+			saved, err := client.SetPostgresAllowList(command.Context(), database.ID, entries)
+			if err != nil {
 				return err
 			}
-			return o.printPostgresAllowlist(command, entries)
+			return o.printPostgresAllowlist(command, saved)
 		},
 	}
 }
@@ -111,10 +114,11 @@ func (o *options) postgresAllowlistClearCommand() *cobra.Command {
 				}
 			}
 			entries := []api.PostgresIPRange{}
-			if err := client.SetPostgresAllowList(command.Context(), database.ID, entries); err != nil {
+			saved, err := client.SetPostgresAllowList(command.Context(), database.ID, entries)
+			if err != nil {
 				return err
 			}
-			return o.printPostgresAllowlist(command, entries)
+			return o.printPostgresAllowlist(command, saved)
 		},
 	}
 	command.Flags().BoolVarP(&yes, "yes", "y", false, "Confirm blocking all public access")

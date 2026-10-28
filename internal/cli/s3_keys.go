@@ -69,37 +69,54 @@ func (o *options) s3KeyCreateCommand() *cobra.Command {
 }
 
 func (o *options) s3KeyDeleteCommand() *cobra.Command {
-	return &cobra.Command{Use: "delete <bucket> <name-or-id>", Short: "Revoke a bucket access key (requires a read-write token)", Args: validateArguments, RunE: func(command *cobra.Command, args []string) error {
-		client, bucket, err := o.s3Access(command, args[0])
-		if err != nil {
-			return err
-		}
-		if err := o.requireS3Write(); err != nil {
-			return err
-		}
-		keys, err := client.BucketKeys(command.Context(), bucket.ID)
-		if err != nil {
-			return err
-		}
-		choices := make([]choice, len(keys))
-		for index, key := range keys {
-			choices[index] = choice{key.ID, key.Name}
-		}
-		index, err := resolve("bucket key", args[1], choices)
-		if err != nil {
-			return err
-		}
-		key := keys[index]
-		err = client.DeleteBucketKey(command.Context(), bucket.ID, key.ID)
-		var apiError *api.Error
-		if err != nil && (!errors.As(err, &apiError) || apiError.Status != 404) {
-			return err
-		}
-		if err := o.forgetBucketKey(bucket.ID, key.ID); err != nil {
-			return fmt.Errorf("key %q was revoked, but its saved credentials could not be removed: %w", key.ID, err)
-		}
-		return o.print(command, map[string]any{"bucket": bucket.Name, "keyId": key.ID, "deleted": true}, [][]string{{"Key deleted", key.Name}, {"ID", key.ID}, {"Bucket", bucket.Name}})
-	}}
+	var yes bool
+	command := &cobra.Command{Use: "delete <bucket> <name-or-id>", Short: "Revoke a bucket access key (requires a read-write token)", Args: validateArguments,
+		Long: "Revoke a bucket access key. Applications using it lose access immediately.\nRequires confirmation in a terminal, or --yes for noninteractive use.",
+		RunE: func(command *cobra.Command, args []string) error {
+			client, bucket, err := o.s3Access(command, args[0])
+			if err != nil {
+				return err
+			}
+			if err := o.requireS3Write(); err != nil {
+				return err
+			}
+			keys, err := client.BucketKeys(command.Context(), bucket.ID)
+			if err != nil {
+				return err
+			}
+			choices := make([]choice, len(keys))
+			for index, key := range keys {
+				choices[index] = choice{key.ID, key.Name}
+			}
+			index, err := resolve("bucket key", args[1], choices)
+			if err != nil {
+				return err
+			}
+			key := keys[index]
+			if !yes {
+				if !o.canPrompt(command) {
+					return errors.New("key deletion requires confirmation; use --yes or rerun in a terminal")
+				}
+				approved, err := confirm(command.Context(), command.InOrStdin(), command.ErrOrStderr(), fmt.Sprintf("Revoke key %q (%s) for bucket %q? Applications using it lose access.", key.Name, terminalText(key.ID), bucket.Name))
+				if err != nil {
+					return err
+				}
+				if !approved {
+					return errors.New("key deletion canceled")
+				}
+			}
+			err = client.DeleteBucketKey(command.Context(), bucket.ID, key.ID)
+			var apiError *api.Error
+			if err != nil && (!errors.As(err, &apiError) || apiError.Status != 404) {
+				return err
+			}
+			if err := o.forgetBucketKey(bucket.ID, key.ID); err != nil {
+				return fmt.Errorf("key %q was revoked, but its saved credentials could not be removed: %w", key.ID, err)
+			}
+			return o.print(command, map[string]any{"bucket": bucket.Name, "keyId": key.ID, "deleted": true}, [][]string{{"Key deleted", key.Name}, {"ID", key.ID}, {"Bucket", bucket.Name}})
+		}}
+	command.Flags().BoolVarP(&yes, "yes", "y", false, "Confirm key revocation")
+	return command
 }
 
 // forgetBucketKey clears only a matching saved key in the selected profile.
