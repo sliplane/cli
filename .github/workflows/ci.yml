@@ -5,17 +5,31 @@ on:
   push:
     branches: [main]
   workflow_call:
+    inputs:
+      release:
+        description: Run without the shared cache, for the release workflow.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   check:
+    name: check (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - name: linux
+            runner: nscloud-ubuntu-24.04-amd64-8x16-with-cache
+          - name: macos
+            runner: nscloud-macos-tahoe-arm64-6x14-with-cache
+    # Pull requests and main use separate cache volumes so a pull request cannot
+    # write a cache that main reads; release runs get a fresh, empty volume.
+    runs-on:
+      - ${{ matrix.runner }}
+      - nscloud-cache-tag-sliplane-cli-${{ matrix.name }}-${{ inputs.release && format('release-{0}', github.run_id) || (github.event_name == 'pull_request' && 'pr' || 'main') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -24,8 +38,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          # The release workflow reuses this job; keep caches out of release runs.
           cache: false
+      - uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        with:
+          cache: go
       - run: go mod verify
       - run: make check
       - name: Check for known vulnerabilities
@@ -36,11 +52,11 @@ jobs:
           version: v2.15.1
           args: check
       - name: Build release archives without publishing
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && github.ref == 'refs/heads/main'
         uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: v2.15.1
           args: release --snapshot --clean
       - name: Install the built release
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && github.ref == 'refs/heads/main'
         run: SLIPLANE_TEST_RELEASE_DIR="$PWD/dist" go test ./scripts -run '^TestReleaseInstall$' -count=1

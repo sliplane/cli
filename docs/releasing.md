@@ -20,9 +20,10 @@ Snapshots build every supported target and create archives and checksums under
 archive into a temporary directory and checks its embedded version and commit.
 Normal installer tests run offline as part of `make check`.
 
-CI runs vet and race tests on Linux and macOS. It also builds all release targets
-and runs the release installer smoke test on Linux. Cross-compilation verifies
-that every target builds; it does not execute every target's binary.
+CI runs vet and race tests on Linux and macOS on Namespace runners. Pushes to
+`main` also build all release targets and run the release installer smoke test
+on Linux. Cross-compilation verifies that every target builds; it does not
+execute every target's binary.
 
 ## How releases are protected
 
@@ -115,7 +116,8 @@ These live outside the repository; review them when maintainers change.
   block updates and deletion.
 - **Actions:** set the default workflow permissions to read-only. Require
   approval before workflows run for outside contributors. Allow only GitHub's
-  actions and `goreleaser/goreleaser-action`.
+  actions, `goreleaser/goreleaser-action`, and
+  `namespacelabs/nscloud-cache-action`.
 
 Actions are pinned to commit SHAs. Dependabot proposes updates to actions and Go
 modules only after a seven-day cooldown. CI runs `go mod verify` and
