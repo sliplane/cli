@@ -13,7 +13,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/x/ansi v0.11.8
 	github.com/creack/pty v1.1.24
-	github.com/go-git/go-billy/v5 v5.9.1
+	github.com/go-git/go-billy/v5 v5.9.2
 	github.com/gohxs/readline v0.0.0-20171011095936-a780388e6e7c
 	github.com/lib/pq v1.12.3
 	github.com/spf13/cobra v1.10.2
