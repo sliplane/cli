@@ -25,7 +25,7 @@ root=$(git rev-parse --show-toplevel)
 signers=$root/.github/allowed_signers
 installer=$root/scripts/install.sh
 work=$(mktemp -d)
-trap 'git -C "$root" worktree remove --force "$work/source" >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
+trap 'rm -rf "$work"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -90,7 +90,8 @@ sign() {
   [ ! -e "$work/draft/checksums.txt.sig" ] || fail 'The draft is already signed.'
 
   printf '==> Rebuilding %s locally\n' "$version"
-  git -C "$root" worktree add --quiet --detach "$work/source" "$version"
+  # A full clone, unlike a worktree, lets Go embed the same VCS metadata as CI.
+  git clone --quiet --no-local --branch "$version" "$root" "$work/source" 2>/dev/null
   go_version=$(awk '$1 == "go" { print $2 }' "$work/source/go.mod")
   (cd "$work/source" && env -u GITHUB_TOKEN -u GH_TOKEN GOTOOLCHAIN="go$go_version" goreleaser release --clean --skip=publish >/dev/null) \
     || fail 'The local rebuild failed.'
