@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sliplane/cli/internal/buildinfo"
@@ -21,8 +22,10 @@ const BaseURL = "https://ctrl.sliplane.io/v0"
 
 type Client struct {
 	baseURL string
-	token   string
 	http    *http.Client
+	mutex   sync.Mutex
+	token   string
+	refresh func(ctx context.Context, rejected string) (string, error)
 }
 
 type Error struct {
@@ -58,6 +61,35 @@ func New(baseURL, token string) *Client {
 	}}
 }
 
+// SetRefresh lets the client replace an expired token once per rejected request.
+func (c *Client) SetRefresh(refresh func(ctx context.Context, rejected string) (string, error)) {
+	c.refresh = refresh
+}
+
+func (c *Client) currentToken() string {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.token
+}
+
+// refreshToken lets concurrent requests share one refresh of the same rejected token.
+func (c *Client) refreshToken(ctx context.Context, rejected string) (bool, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.refresh == nil {
+		return false, nil
+	}
+	if c.token != rejected {
+		return true, nil
+	}
+	token, err := c.refresh(ctx, rejected)
+	if err != nil {
+		return false, err
+	}
+	c.token = token
+	return true, nil
+}
+
 // request sends one authenticated request and never prints transport or response bodies.
 func (c *Client) request(ctx context.Context, method, path string, input, output any) error {
 	_, err := c.requestHeaders(ctx, method, path, input, output)
@@ -65,22 +97,41 @@ func (c *Client) request(ctx context.Context, method, path string, input, output
 }
 
 func (c *Client) requestHeaders(ctx context.Context, method, path string, input, output any) (http.Header, error) {
-	var body io.Reader
+	var encoded []byte
 	if input != nil {
-		encoded, err := json.Marshal(input)
-		if err != nil {
+		var err error
+		if encoded, err = json.Marshal(input); err != nil {
 			return nil, fmt.Errorf("encode API request: %w", err)
 		}
+	}
+	token := c.currentToken()
+	header, err := c.send(ctx, method, path, encoded, token, output)
+	var apiError *Error
+	if errors.As(err, &apiError) && apiError.Status == http.StatusUnauthorized {
+		refreshed, refreshErr := c.refreshToken(ctx, token)
+		if refreshErr != nil {
+			return nil, refreshErr
+		}
+		if refreshed {
+			return c.send(ctx, method, path, encoded, c.currentToken(), output)
+		}
+	}
+	return header, err
+}
+
+func (c *Client) send(ctx context.Context, method, path string, encoded []byte, token string, output any) (http.Header, error) {
+	var body io.Reader
+	if encoded != nil {
 		body = bytes.NewReader(encoded)
 	}
 	request, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 	if err != nil {
 		return nil, fmt.Errorf("create API request: %w", err)
 	}
-	request.Header.Set("Authorization", "Bearer "+c.token)
+	request.Header.Set("Authorization", "Bearer "+token)
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", "sliplane-cli/"+buildinfo.Version)
-	if input != nil {
+	if encoded != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
 	response, err := c.http.Do(request)
@@ -88,15 +139,15 @@ func (c *Client) requestHeaders(ctx context.Context, method, path string, input,
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return nil, fmt.Errorf("API request failed: %s", strings.ReplaceAll(err.Error(), c.token, "[redacted]"))
+		return nil, fmt.Errorf("API request failed: %s", strings.ReplaceAll(err.Error(), token, "[redacted]"))
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		apiError := &Error{Status: response.StatusCode}
 		// Gateways may return HTML; only structured errors are suitable for display.
 		_ = json.NewDecoder(io.LimitReader(response.Body, 64*1024)).Decode(apiError)
-		apiError.Message = strings.ReplaceAll(apiError.Message, c.token, "[redacted]")
-		apiError.Code = strings.ReplaceAll(apiError.Code, c.token, "[redacted]")
+		apiError.Message = strings.ReplaceAll(apiError.Message, token, "[redacted]")
+		apiError.Code = strings.ReplaceAll(apiError.Code, token, "[redacted]")
 		return nil, apiError
 	}
 	if output == nil {
@@ -124,7 +175,7 @@ func (c *Client) ClientIP(ctx context.Context, network string) (netip.Addr, erro
 		return dialer.DialContext(ctx, network, address)
 	}
 	defer transport.CloseIdleConnections()
-	direct := &Client{baseURL: c.baseURL, token: c.token, http: &http.Client{Transport: transport, Timeout: c.http.Timeout, CheckRedirect: c.http.CheckRedirect}}
+	direct := &Client{baseURL: c.baseURL, token: c.currentToken(), http: &http.Client{Transport: transport, Timeout: c.http.Timeout, CheckRedirect: c.http.CheckRedirect}}
 	header, err := direct.requestHeaders(ctx, http.MethodGet, "/me", nil, new(Identity))
 	if err != nil {
 		return netip.Addr{}, err
