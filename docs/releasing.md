@@ -1,8 +1,8 @@
 # Releasing Sliplane CLI
 
 GoReleaser builds macOS and Linux binaries for amd64 and arm64. Native Windows
-installation is not included yet; Windows users can use WSL. The CLI does not
-check for updates or update itself.
+installation is not included yet; Windows users can use WSL. Release builds
+update themselves; see [Automatic updates](#automatic-updates).
 
 ## Validate locally
 
@@ -36,8 +36,8 @@ compromised GitHub account, token, or workflow is not enough.
    repository is public.
 3. A maintainer rebuilds the release locally, checks that it is byte-identical
    to the draft, and signs `checksums.txt` with a YubiKey.
-4. `install.sh` refuses releases without a valid signature from one of the keys
-   it embeds.
+4. `install.sh` and `sliplane update` refuse releases without a valid
+   signature from one of the keys they embed.
 
 ## Enroll a YubiKey
 
@@ -57,14 +57,16 @@ make signing-check KEY=yubikey-backup
 ```
 
 This creates `~/.ssh/sliplane-release-NAME` and adds the key to
-`.github/allowed_signers` and `scripts/install.sh`. Merge the change to `main`
-before using the key. On another computer, restore the key file with
+`.github/allowed_signers`, `scripts/install.sh`, and
+`internal/update/allowed_signers`. Merge the change to `main` before using the
+key. Installed CLIs only trust the keys built into them, so sign with a new key
+only after a release that includes it has been out for a while. On another computer, restore the key file with
 `/opt/homebrew/opt/openssh/bin/ssh-keygen -K`.
 
 ## Remove a key
 
 A lost YubiKey is still protected by its PIN, which locks after 8 wrong
-attempts. Remove its line from both files in a pull request. Newer installers
+attempts. Remove its line from all three files in a pull request. Newer installers
 then reject releases signed with that key, and immutable releases cannot be
 re-signed, so publish a new release if needed.
 
@@ -122,6 +124,19 @@ These live outside the repository; review them when maintainers change.
 Actions are pinned to commit SHAs. Dependabot proposes updates to actions and Go
 modules only after a seven-day cooldown. CI runs `go mod verify` and
 `govulncheck`.
+
+## Automatic updates
+
+Builds from the Release workflow set `buildinfo.Release`. Once a day, the first
+command they run starts `sliplane update --background` in a detached process and
+continues without waiting. The update makes the same checks as `install.sh`,
+then renames the new executable over the old one; the next command uses it and
+prints `Updated Sliplane OLD → NEW`. The last check time lives in
+`update.json` in the OS user cache directory.
+
+Automatic updates are off when `CI` or `SLIPLANE_NO_AUTO_UPDATE` is set, and
+for `go install`, `make build`, and other non-release builds. Users can always
+run `sliplane update` to update immediately.
 
 ## Verify a release manually
 

@@ -34,5 +34,6 @@ func Execute(command *cobra.Command) error {
 			}
 		}
 	}()
+	autoUpdate(command, os.Args[1:])
 	return command.ExecuteContext(ctx)
 }
