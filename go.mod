@@ -1,6 +1,6 @@
 module sliplane-cli
 
-go 1.26.8
+go 1.26.10
 
 require (
 	charm.land/bubbletea/v2 v2.0.10
