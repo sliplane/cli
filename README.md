@@ -2,116 +2,144 @@
 
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange)
 
-A command-line interface for [Sliplane](https://sliplane.io). Deploy and manage
-services, servers, S3 buckets, and PostgreSQL databases from your terminal.
-
-## Installation
-
-### Install script
-
-For macOS, Linux, and WSL on x86_64 or ARM64. Run in bash or zsh:
+Deploy and manage your [Sliplane](https://sliplane.io) services, servers,
+PostgreSQL databases, and S3 buckets from the terminal.
 
 ```sh
-curl -fsSL https://github.com/sliplane/cli/releases/latest/download/install.sh | sh -s -- --setup-path && \
-  export PATH="$HOME/.sliplane/bin:$PATH"
+sliplane deploy n8n --name workflows   # deploy a preset
+sliplane logs workflows --follow       # stream its logs
+sliplane ssh workflows                 # open a shell inside it
+sliplane postgres connect main         # psql-style shell, nothing to install
 ```
 
-Installs to `~/.sliplane/bin` and sets up PATH for your current and future
-terminals. Run the same command again to update. The installer only installs
-releases signed by a Sliplane maintainer's hardware key (requires OpenSSH 8.2+).
+> The CLI is in alpha. Commands and JSON output may still change between
+> releases.
 
-To install a specific version, replace `0.1.0` in both places with a published
-release:
+## Install
+
+macOS, Linux, and WSL (x86_64 and ARM64):
 
 ```sh
-curl -fsSL https://github.com/sliplane/cli/releases/download/v0.1.0/install.sh | sh -s -- 0.1.0 --setup-path && \
-  export PATH="$HOME/.sliplane/bin:$PATH"
+curl -fsSL https://sliplane.io/install.sh | sh
 ```
 
-### Download from GitHub
+This installs to `~/.sliplane/bin` and offers to add it to your PATH. Run it
+again to update. The installer only accepts releases signed by a Sliplane
+maintainer (requires OpenSSH 8.2+).
 
-Download the archive for your platform from the
-[Releases page](https://github.com/sliplane/cli/releases), extract it, and place
-the `sliplane` binary in a directory on your PATH.
+<details>
+<summary>Other ways to install</summary>
 
-### Go
+**A specific version:** replace `0.1.0` in both places.
 
-With Go installed (see [go.mod](go.mod) for the required version):
+```sh
+curl -fsSL https://github.com/sliplane/cli/releases/download/v0.1.0/install.sh | sh -s -- 0.1.0
+```
+
+**With Go:**
 
 ```sh
 go install github.com/sliplane/cli/cmd/sliplane@latest
 ```
 
-## Getting started
+**Manually:** download an archive from the
+[releases page](https://github.com/sliplane/cli/releases) and put the
+`sliplane` binary on your PATH.
 
-1. Sign in to [Sliplane](https://sliplane.io) in your browser, select your team,
-   then log in from a terminal on the same computer:
+</details>
 
-   ```sh
-   sliplane auth login
-   ```
+## Get started
 
-2. List your services:
+Sign in to [sliplane.io](https://sliplane.io) in your browser and select your
+team. Then:
 
-   ```sh
-   sliplane service list
-   ```
+```sh
+sliplane auth login       # approve the login in your browser
+sliplane service list     # list services in all projects
+```
 
-3. Inspect a service by name or ID:
-
-   ```sh
-   sliplane service show my-service
-   ```
-
-Use `sliplane --help` to explore commands, or append `--help` to any command
-for its options.
-
-Logging in to a different team prompts you to overwrite the current profile,
-create a new profile, or cancel. Overwriting clears the previous team's saved
-project and S3 credentials. Creating a profile keeps the old one and selects the
-new one. For scripts, use `sliplane auth login --profile NAME` with a new name.
-
-## Project settings
-
-Save a default project for your current profile:
+Resources can be referenced by name or ID. Save a default project so you
+don't need `--project` every time:
 
 ```sh
 sliplane config set project my-project
 ```
 
-Override it for a single command with `--project`:
+Run `sliplane --help`, or `--help` on any command, for every option.
+
+## What you can do
+
+| Command | |
+| --- | --- |
+| `service` | Create from an image or GitHub repo, update, redeploy, pause, delete. Manage env vars, domains, and volumes. |
+| `deploy` | Create a service from a dashboard preset (`sliplane preset list`). |
+| `logs`, `service metrics`, `service events` | Read or follow logs, chart CPU and memory (`--watch`), see deploy history. |
+| `ssh`, `tunnel` | Open a shell in a service, or forward a local port to it. Uses your installed OpenSSH. |
+| `postgres` | Create, resize, restore, and connect to databases. Run queries and inspect slow queries, sizes, and connections. |
+| `s3` | Manage buckets, access keys, and CORS. Upload and download files. |
+| `server`, `project` | Create, scale, and delete servers. Manage server volumes and projects. |
+| `registry`, `ssh-key` | Manage private registry credentials and persistent SSH keys. |
+
+A few examples:
 
 ```sh
-sliplane service list --project another-project
+sliplane service create web --image docker.io/library/nginx:1.28 --public --server main
+sliplane service env set web API_KEY 'value'
+sliplane service domain add web example.com
+sliplane tunnel api --local-port 8080
+sliplane postgres query main 'SELECT now();'
+sliplane s3 upload uploads ./report.pdf
 ```
 
-## Connect to a service
+## Authentication
+
+`sliplane auth login` opens your browser and stores the token in your OS
+keychain. You stay logged in as long as you use the CLI at least once a week.
+Check who you are with `sliplane auth status`.
+
+**Multiple teams:** each team gets its own profile. Logging in to a new team
+asks whether to overwrite the current profile or create a new one. Switch with
+`sliplane profile use NAME` or `--profile NAME`.
+
+**CI and scripts:** create an API token in the Sliplane dashboard and pass it
+in the environment. Commands that change resources need a read-write token.
 
 ```sh
-sliplane tunnel my-service
+export SLIPLANE_TOKEN=...
+sliplane service redeploy api --project production
 ```
 
-Uses the service's internal port locally if available, otherwise a free port,
-and prints the local address to connect to.
-If the service port is unknown, it tries HTTP on port 80.
-Press Ctrl-C to close the tunnel. To choose ports yourself:
+## Scripting
+
+- Add `-o json` to any command for machine-readable output (JSON Lines with
+  `logs --follow`). Make it the default with `sliplane config set output json`.
+- Commands never prompt with JSON output or outside a terminal. Commands that
+  would ask for confirmation require `--yes` instead.
+- Shell completion: `sliplane completion bash|zsh|fish|powershell --help`.
+
+| Environment variable | |
+| --- | --- |
+| `SLIPLANE_TOKEN` | API token. Overrides the saved login. |
+| `SLIPLANE_PROFILE` | Profile to use. |
+| `SLIPLANE_S3_ACCESS_KEY_ID`, `SLIPLANE_S3_SECRET_ACCESS_KEY` | Bucket credentials for `s3` file commands. |
+
+## Coding agents
+
+`sliplane agent init` adds a short Sliplane guide to `AGENTS.md` (or
+`CLAUDE.md` in Claude Code) so coding agents know how to use the CLI safely.
+
+## Development
+
+Requires the Go version in [go.mod](go.mod).
 
 ```sh
-sliplane tunnel my-service --local-port 8080 --remote-port 3000
+make build && ./bin/sliplane --help
+make check    # vet and tests
 ```
 
-## Building from source
+Maintainers: see [docs/releasing.md](docs/releasing.md) for how releases are
+built and signed. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-With Go installed (see [go.mod](go.mod) for the required version):
+## License
 
-```sh
-make build
-./bin/sliplane --help
-```
-
-Run checks with `make check`.
-
-## Releases
-
-Tagged releases are built with GoReleaser and published through GitHub Releases.
-See [the release process](docs/releasing.md) for maintainer instructions.
+[Apache 2.0](LICENSE)
