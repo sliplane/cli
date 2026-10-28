@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -22,9 +24,11 @@ import (
 func TestInstall(t *testing.T) {
 	archiveName := fmt.Sprintf("sliplane_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 	for _, test := range []struct {
-		name, failure, wantError string
+		name, installed, failure, wantError string
 	}{
 		{name: "update"},
+		{name: "same version already installed", installed: "1.2.3"},
+		{name: "newer version already installed", installed: "1.2.4"},
 		{name: "unsigned release", failure: "unsigned", wantError: "checksums.txt.sig: 404"},
 		{name: "untrusted signer", failure: "untrusted", wantError: "not from a trusted release key"},
 		{name: "checksums changed after signing", failure: "tampered", wantError: "signature does not match"},
@@ -66,7 +70,9 @@ func TestInstall(t *testing.T) {
 			if test.failure == "unsigned" {
 				delete(files, "checksums.txt.sig")
 			}
+			downloads := 0
 			server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				downloads++
 				contents, ok := files[strings.TrimPrefix(request.URL.Path, "/releases/download/v1.2.3/")]
 				if !ok {
 					http.NotFound(writer, request)
@@ -77,7 +83,11 @@ func TestInstall(t *testing.T) {
 			defer server.Close()
 
 			executable := filepath.Join(t.TempDir(), "sliplane")
-			if err := os.WriteFile(executable, []byte("old"), 0755); err != nil {
+			previous := "old"
+			if test.installed != "" {
+				previous = "#!/bin/sh\necho 'sliplane " + test.installed + " (commit test)'\n"
+			}
+			if err := os.WriteFile(executable, []byte(previous), 0755); err != nil {
 				t.Fatal(err)
 			}
 			updater := &Updater{Releases: server.URL + "/releases", Client: server.Client(), Signers: signer.allowedSigners(), Executable: executable}
@@ -93,13 +103,19 @@ func TestInstall(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), test.wantError) {
 					t.Fatalf("error %v; want %q", err, test.wantError)
 				}
-				if string(installed) != "old" {
+				if string(installed) != previous {
 					t.Fatal("a failed update changed the executable")
 				}
 				return
 			}
 			if err != nil {
 				t.Fatal(err)
+			}
+			if test.installed != "" {
+				if string(installed) != previous || downloads != 0 {
+					t.Fatalf("replaced version %s with 1.2.3 after %d downloads", test.installed, downloads)
+				}
+				return
 			}
 			if string(installed) != binary {
 				t.Fatalf("installed %q; want the release executable", installed)
@@ -200,6 +216,24 @@ func TestBackgroundState(t *testing.T) {
 	}
 	if !Claim(path, now) {
 		t.Fatal("a damaged state file blocked updates")
+	}
+}
+
+func TestClaimIsExclusive(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "update.json")
+	now := time.Now()
+	var claims atomic.Int32
+	var group sync.WaitGroup
+	for range 64 {
+		group.Go(func() {
+			if Claim(path, now) {
+				claims.Add(1)
+			}
+		})
+	}
+	group.Wait()
+	if claims.Load() != 1 {
+		t.Fatalf("%d commands claimed the same check; want 1", claims.Load())
 	}
 }
 

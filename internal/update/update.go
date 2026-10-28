@@ -86,10 +86,21 @@ func (u *Updater) Latest(ctx context.Context) (string, error) {
 }
 
 // Install downloads version, verifies its signature, checksum, and reported
-// version, and only then atomically replaces the executable.
+// version, and only then atomically replaces the executable. It leaves an
+// executable that already reports version or later in place.
 func (u *Updater) Install(ctx context.Context, version string) error {
 	if !versionPattern.MatchString(version) {
 		return fmt.Errorf("invalid version %q", version)
+	}
+	// Updates of the same executable take turns. One that waited may find
+	// that another has already installed this release or a newer one.
+	unlock, err := lock(filepath.Join(filepath.Dir(u.Executable), ".sliplane-update.lock"))
+	if err != nil {
+		return fmt.Errorf("lock the installation: %w", err)
+	}
+	defer unlock()
+	if installed, err := reportedVersion(ctx, u.Executable); err == nil && !Newer(version, installed) {
+		return nil
 	}
 	keys, err := trustedKeys(u.Signers)
 	if err != nil {
