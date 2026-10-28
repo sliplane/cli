@@ -222,7 +222,8 @@ func TestInstallPath(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			directory := t.TempDir()
 			archiveName := "sliplane_1.2.3_linux_amd64.tar.gz"
-			binary := []byte("#!/bin/sh\necho 'sliplane 1.2.3 (commit test)'\n")
+			// Profiles run `sliplane completion`, which must print a valid script.
+			binary := []byte("#!/bin/sh\ncase \"$1\" in\n  version) echo 'sliplane 1.2.3 (commit test)' ;;\n  completion) echo \"sliplane_completion=$2\" ;;\nesac\n")
 			archive := releaseArchive(t, binary)
 			writeFile(t, filepath.Join(directory, archiveName), archive.Bytes(), 0600)
 			checksum := fmt.Sprintf("%x  %s\n", sha256.Sum256(archive.Bytes()), archiveName)
@@ -304,6 +305,18 @@ func TestInstallPath(t *testing.T) {
 			path, err := check.Output()
 			if err != nil || !strings.HasPrefix(string(path), installDirectory+":") {
 				t.Fatalf("profile PATH does not select installation: %v %s", err, path)
+			}
+			shell := filepath.Base(test.shell)
+			if strings.Count(string(contents), "eval \"$(sliplane completion "+shell+")\"") != 1 {
+				t.Fatalf("profile does not load %s completion:\n%s", shell, contents)
+			}
+			if _, err := exec.LookPath(shell); err == nil {
+				// bash completion also needs bash-completion; stand in for it.
+				load := exec.Command(shell, "-c", `_get_comp_words_by_ref() { :; }; . "$1"; printf '%s' "$sliplane_completion"`, shell, profile)
+				load.Env = append(command.Env, "ZDOTDIR="+t.TempDir())
+				if loaded, err := load.CombinedOutput(); err != nil || string(loaded) != shell {
+					t.Fatalf("%s did not load completion: %v %s", shell, err, loaded)
+				}
 			}
 			repeat := exec.Command("sh", "install.sh", "--setup-path")
 			repeat.Dir = command.Dir
