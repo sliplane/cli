@@ -77,6 +77,7 @@ func TestPostgresAllowlistPreservesUnrelatedRules(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			writes := 0
+			var saved []map[string]any
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/postgres" {
 					fmt.Fprint(w, `[{"id":"pg_main","name":"main"}]`)
@@ -106,13 +107,30 @@ func TestPostgresAllowlistPreservesUnrelatedRules(t *testing.T) {
 				if !reflect.DeepEqual(actual, want) {
 					t.Errorf("rules = %s; want %s", got["ipAllowList"], test.want)
 				}
-				w.WriteHeader(http.StatusNoContent)
+				// The API replaces every rule and returns new IDs.
+				saved = []map[string]any{}
+				for index, rule := range actual.([]any) {
+					entry := rule.(map[string]any)
+					entry["id"] = fmt.Sprintf("pgfw_saved%d", index)
+					saved = append(saved, entry)
+				}
+				response, _ := json.Marshal(map[string]any{"id": "pg_main", "name": "main", "ipAllowList": saved})
+				w.Write(response)
 			}))
 			defer server.Close()
-			args := append([]string{"postgres", "allowlist"}, test.args...)
-			_, _, err := runCommand(t, server.URL, args...)
+			args := append([]string{"postgres", "allowlist"}, append(test.args, "-o", "json")...)
+			output, _, err := runCommand(t, server.URL, args...)
 			if err != nil || writes != 1 {
 				t.Fatalf("err=%v writes=%d", err, writes)
+			}
+			var printed []map[string]any
+			if err := json.Unmarshal([]byte(output), &printed); err != nil || len(printed) != len(saved) {
+				t.Fatalf("output %q; want the saved rules %v", output, saved)
+			}
+			for index, entry := range printed {
+				if entry["id"] != saved[index]["id"] {
+					t.Errorf("printed ID %v; want saved ID %v", entry["id"], saved[index]["id"])
+				}
 			}
 		})
 	}
