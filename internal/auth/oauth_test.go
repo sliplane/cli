@@ -36,7 +36,7 @@ func TestOAuthLoginExchangesPKCECode(t *testing.T) {
 		if r.Form.Has("client_secret") || r.Header.Get("Authorization") != "" {
 			t.Error("public client supplied client authentication")
 		}
-		fmt.Fprint(w, `{"access_token":"access-token","token_type":"Bearer","refresh_token":"unused-refresh-token","expires_in":86400}`)
+		fmt.Fprint(w, `{"access_token":"access-token","token_type":"Bearer","refresh_token":"refresh-token","expires_in":86400}`)
 	}))
 	defer provider.Close()
 	client := OAuthClient{ID: "public-client", AuthorizationURL: provider.URL + "/authorize", TokenURL: provider.URL + "/token"}
@@ -82,8 +82,8 @@ func TestOAuthLoginExchangesPKCECode(t *testing.T) {
 		}
 		return err
 	})
-	if err != nil || token != "access-token" {
-		t.Fatalf("login returned %q, %v", token, err)
+	if err != nil || token != (Credential{AccessToken: "access-token", RefreshToken: "refresh-token"}) {
+		t.Fatalf("login returned %+v, %v", token, err)
 	}
 	response, err := http.Get(callbackURL)
 	if err == nil {
@@ -189,6 +189,7 @@ func TestOAuthTokenResponseValidation(t *testing.T) {
 		{"missing token", `{"token_type":"Bearer"}`, 200},
 		{"wrong token type", `{"access_token":"secret","token_type":"Basic"}`, 200},
 		{"unsafe token", `{"access_token":"secret\nvalue","token_type":"Bearer"}`, 200},
+		{"unsafe refresh token", `{"access_token":"secret","refresh_token":"secret value","token_type":"Bearer"}`, 200},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -199,9 +200,35 @@ func TestOAuthTokenResponseValidation(t *testing.T) {
 			defer provider.Close()
 			client := OAuthClient{ID: "client", TokenURL: provider.URL}
 			token, err := client.exchange(t.Context(), "secret-code", "secret-verifier", "http://127.0.0.1/callback")
-			if err == nil || token != "" || strings.Contains(err.Error(), "secret") {
-				t.Fatalf("unsafe token exchange result: %q, %v", token, err)
+			if err == nil || token != (Credential{}) || strings.Contains(err.Error(), "secret") {
+				t.Fatalf("unsafe token exchange result: %+v, %v", token, err)
 			}
 		})
+	}
+}
+
+func TestOAuthRefresh(t *testing.T) {
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		if r.Form.Get("grant_type") != "refresh_token" || r.Form.Get("client_id") != "public-client" || r.Form.Has("client_secret") || r.Header.Get("Authorization") != "" {
+			t.Error("incorrect refresh parameters")
+		}
+		if r.Form.Get("refresh_token") != "old-refresh" {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"error":"invalid_grant"}`)
+			return
+		}
+		fmt.Fprint(w, `{"access_token":"new-access","token_type":"Bearer","refresh_token":"new-refresh"}`)
+	}))
+	defer provider.Close()
+	client := OAuthClient{ID: "public-client", TokenURL: provider.URL}
+	credential, err := client.Refresh(t.Context(), "old-refresh")
+	if err != nil || credential != (Credential{AccessToken: "new-access", RefreshToken: "new-refresh"}) {
+		t.Fatalf("refresh returned %+v, %v", credential, err)
+	}
+	if _, err := client.Refresh(t.Context(), "revoked"); err == nil || !strings.Contains(err.Error(), "run sliplane auth login") {
+		t.Fatalf("revoked refresh token: %v", err)
 	}
 }

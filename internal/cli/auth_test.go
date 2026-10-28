@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/sliplane/cli/internal/auth"
@@ -42,9 +43,9 @@ func TestLoginTokenSelection(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 			command.SetContext(ctx)
-			token, err := options.loginToken(command)
-			if token != test.want {
-				t.Fatalf("got token %q, want %q", token, test.want)
+			credential, err := options.loginToken(command)
+			if credential.AccessToken != test.want || credential.RefreshToken != "" {
+				t.Fatalf("got %+v, want token %q", credential, test.want)
 			}
 			if !test.flagSet && test.environment == "" && !errors.Is(err, context.Canceled) {
 				t.Fatalf("browser login ignored cancellation: %v", err)
@@ -106,5 +107,92 @@ func TestLoginVerifiesBeforeSaving(t *testing.T) {
 	profile := saved.Profiles["work"]
 	if profile.OrganizationName != "Work Team" || profile.Project != "production" || profile.S3Credentials["bucket"] != "s3_work" {
 		t.Fatalf("same-team login lost settings or did not save the team name: %+v", profile)
+	}
+}
+
+func TestBrowserLoginRefresh(t *testing.T) {
+	t.Setenv("SLIPLANE_TOKEN", "")
+	t.Setenv("SLIPLANE_PROFILE", "")
+	for _, test := range []struct {
+		name, saved, wantAccess, wantError string
+		refreshFails, rotatedElsewhere     bool
+		wantRefreshes                      int
+	}{
+		{name: "refreshes once and saves the new pair", saved: `{"accessToken":"old-access","refreshToken":"old-refresh"}`, wantAccess: "new-access", wantRefreshes: 1},
+		{name: "reuses a pair rotated by another process", saved: `{"accessToken":"old-access","refreshToken":"old-refresh"}`, rotatedElsewhere: true, wantAccess: "other-access"},
+		{name: "expired refresh token asks to log in", saved: `{"accessToken":"old-access","refreshToken":"old-refresh"}`, refreshFails: true, wantAccess: "old-access", wantError: "run sliplane auth login", wantRefreshes: 1},
+		{name: "API tokens are never refreshed", saved: "old-access", wantAccess: "old-access", wantError: "HTTP 401"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			keyring.MockInit()
+			path := filepath.Join(t.TempDir(), "config.json")
+			if err := config.Save(path, config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work"}}}); err != nil {
+				t.Fatal(err)
+			}
+			if err := auth.Save("credential_work", test.saved); err != nil {
+				t.Fatal(err)
+			}
+			refreshes := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/token":
+					refreshes++
+					if err := r.ParseForm(); err != nil || r.Form.Get("refresh_token") != "old-refresh" || test.refreshFails {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+					fmt.Fprint(w, `{"access_token":"new-access","token_type":"Bearer","refresh_token":"new-refresh"}`)
+				case "/me":
+					switch r.Header.Get("Authorization") {
+					case "Bearer new-access", "Bearer other-access":
+						fmt.Fprint(w, `{"organizationId":"org1"}`)
+					default:
+						if test.rotatedElsewhere {
+							if err := auth.Save("credential_work", `{"accessToken":"other-access","refreshToken":"other-refresh"}`); err != nil {
+								t.Error(err)
+							}
+						}
+						w.WriteHeader(http.StatusUnauthorized)
+					}
+				case "/projects":
+					fmt.Fprint(w, `[]`)
+				default:
+					t.Errorf("unexpected request %s", r.URL.Path)
+				}
+			}))
+			defer server.Close()
+			previous := oauthClient
+			oauthClient.TokenURL = server.URL + "/token"
+			t.Cleanup(func() { oauthClient = previous })
+			_, _, err := runProfileCommand(t, server.URL, path, "project", "list", "-o", "json")
+			if test.wantError == "" && err != nil || test.wantError != "" && (err == nil || !strings.Contains(err.Error(), test.wantError)) {
+				t.Fatalf("got error %v, want %q", err, test.wantError)
+			}
+			if refreshes != test.wantRefreshes {
+				t.Fatalf("got %d refreshes, want %d", refreshes, test.wantRefreshes)
+			}
+			if credential, err := auth.LoadCredential("credential_work"); err != nil || credential.AccessToken != test.wantAccess {
+				t.Fatalf("saved %+v, %v; want access token %q", credential, err, test.wantAccess)
+			}
+		})
+	}
+}
+
+func TestLogoutRemovesBrowserLogin(t *testing.T) {
+	t.Setenv("SLIPLANE_TOKEN", "")
+	t.Setenv("SLIPLANE_PROFILE", "")
+	keyring.MockInit()
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := config.Save(path, config.Config{ActiveProfile: "work", Profiles: map[string]config.Profile{"work": {OrganizationID: "org1", CredentialID: "credential_work"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := auth.SaveCredential("credential_work", auth.Credential{AccessToken: "access", RefreshToken: "refresh"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runProfileCommand(t, "http://127.0.0.1:1", path, "auth", "logout"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.Load("credential_work"); !errors.Is(err, keyring.ErrNotFound) {
+		t.Fatalf("logout kept the saved login: %v", err)
 	}
 }

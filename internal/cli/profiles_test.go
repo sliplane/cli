@@ -216,7 +216,7 @@ func TestFailedProfileOverwritePreservesCredentials(t *testing.T) {
 		}
 	}
 	options := options{profileName: "work", configPath: filepath.Join(parent, "config.json"), preferences: config.Config{Profiles: map[string]config.Profile{"work": previous}}}
-	if err := options.saveLogin("new-token", api.Identity{OrganizationID: "org_work"}); err == nil {
+	if err := options.saveLogin(auth.Credential{AccessToken: "new-token"}, api.Identity{OrganizationID: "org_work"}); err == nil {
 		t.Fatal("save should fail")
 	}
 	if options.preferences.Profiles["work"].CredentialID != "old-key" {
