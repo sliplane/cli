@@ -7,9 +7,9 @@ require (
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/NimbleMarkets/ntcharts/v2 v2.6.0
-	github.com/aws/aws-sdk-go-v2 v1.47.0
+	github.com/aws/aws-sdk-go-v2 v1.47.3
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.1
-	github.com/aws/smithy-go v1.28.1
+	github.com/aws/smithy-go v1.28.5
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/creack/pty v1.1.24
