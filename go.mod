@@ -19,12 +19,11 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/xo/dburl v0.25.1
 	github.com/xo/usql v0.21.5
-	github.com/zalando/go-keyring v0.2.6
+	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/term v0.47.0
 )
 
 require (
-	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	charm.land/bubbles/v2 v2.2.1 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
@@ -49,7 +48,7 @@ require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
 	github.com/kenshaw/rasterm v0.1.17 // indirect
