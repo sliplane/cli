@@ -20,7 +20,7 @@ func (o *options) authCommand() *cobra.Command {
 	command := &cobra.Command{Use: "auth", Short: "Manage authentication"}
 	command.AddCommand(&cobra.Command{
 		Use: "login", Short: "Log in through your browser or save an API token", Args: validateArguments,
-		Long:    "Log in through a local browser using its active Sliplane team. Sign in to\nsliplane.io first. When switching teams, choose to overwrite the current profile,\ncreate a new profile, or cancel. Overwriting clears the old team's project and S3 credentials.\nBrowser tokens expire after 24 hours; run login again to renew.\nSupply --token or SLIPLANE_TOKEN to save an API token instead.",
+		Long:    "Log in through a local browser using its active Sliplane team. Sign in to\nsliplane.io first. When switching teams, choose to overwrite the current profile,\ncreate a new profile, or cancel. Overwriting clears the old team's project and S3 credentials.\nBrowser logins renew automatically while you use the CLI at least once every 7 days.\nSupply --token or SLIPLANE_TOKEN to save an API token instead.",
 		Example: "  sliplane auth login\n  sliplane auth login --profile work --token TOKEN",
 		RunE:    func(command *cobra.Command, _ []string) error { return o.login(command) },
 	}, &cobra.Command{
@@ -58,18 +58,18 @@ func (o *options) login(command *cobra.Command) error {
 	if o.profileName == "" {
 		o.profileName = "default"
 	}
-	token, err := o.loginToken(command)
+	credential, err := o.loginToken(command)
 	if err != nil {
 		return err
 	}
-	identity, err := api.New(o.baseURL, token).Me(command.Context())
+	identity, err := api.New(o.baseURL, credential.AccessToken).Me(command.Context())
 	if err != nil {
 		return err
 	}
 	if err := o.chooseLoginProfile(command, identity); err != nil {
 		return err
 	}
-	if err := o.saveLogin(token, identity); err != nil {
+	if err := o.saveLogin(credential, identity); err != nil {
 		return err
 	}
 	return o.print(command, map[string]any{"profile": o.profileName, "stored": true, "identity": identity}, [][]string{{"Profile", o.profileName}, {"Team", o.teamName(identity, identity.OrganizationID)}, {"Access", identity.TokenType}, {"Token saved to OS keychain."}})
@@ -120,18 +120,19 @@ func (o *options) chooseLoginProfile(command *cobra.Command, identity api.Identi
 	}
 }
 
+var oauthClient = auth.OAuthClient{
+	ID:               "oclient_dj5pznsma6kt",
+	AuthorizationURL: "https://api.sliplane.io/web/oauth/authorize",
+	TokenURL:         "https://api.sliplane.io/web/oauth/token",
+}
+
 // loginToken opens the browser unless a token was explicitly supplied.
-func (o *options) loginToken(command *cobra.Command) (string, error) {
+func (o *options) loginToken(command *cobra.Command) (auth.Credential, error) {
 	if command.Flags().Changed("token") || os.Getenv("SLIPLANE_TOKEN") != "" {
 		token, _, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), "")
-		return token, err
+		return auth.Credential{AccessToken: token}, err
 	}
-	client := auth.OAuthClient{
-		ID:               "oclient_dj5pznsma6kt",
-		AuthorizationURL: "https://api.sliplane.io/web/oauth/authorize",
-		TokenURL:         "https://api.sliplane.io/web/oauth/token",
-	}
-	return client.Login(command.Context(), func(authorizationURL string) error {
+	return oauthClient.Login(command.Context(), func(authorizationURL string) error {
 		fmt.Fprintln(command.ErrOrStderr(), "Opening Sliplane in your browser. Waiting for approval (up to 5 minutes); press Ctrl+C to cancel.")
 		if err := openBrowser(command.Context(), authorizationURL); err != nil {
 			if command.Context().Err() != nil {
@@ -144,7 +145,7 @@ func (o *options) loginToken(command *cobra.Command) (string, error) {
 }
 
 // saveLogin preserves same-team settings; a team switch gets fresh credentials and settings.
-func (o *options) saveLogin(token string, identity api.Identity) error {
+func (o *options) saveLogin(credential auth.Credential, identity api.Identity) error {
 	previous, exists := o.preferences.Profiles[o.profileName]
 	preferences := o.preferences
 	preferences.Profiles = maps.Clone(preferences.Profiles)
@@ -162,7 +163,7 @@ func (o *options) saveLogin(token string, identity api.Identity) error {
 		if err := config.Save(o.configPath, preferences); err != nil {
 			return err
 		}
-		if err := auth.Save(previous.CredentialID, token); err != nil {
+		if err := auth.SaveCredential(previous.CredentialID, credential); err != nil {
 			return err
 		}
 		o.preferences = preferences
@@ -171,7 +172,7 @@ func (o *options) saveLogin(token string, identity api.Identity) error {
 	bytes := make([]byte, 16)
 	rand.Read(bytes)
 	credentialID := "credential_" + hex.EncodeToString(bytes)
-	if err := auth.Save(credentialID, token); err != nil {
+	if err := auth.SaveCredential(credentialID, credential); err != nil {
 		return err
 	}
 	preferences.Profiles[o.profileName] = config.Profile{OrganizationID: identity.OrganizationID, OrganizationName: identity.OrganizationName(identity.OrganizationID), CredentialID: credentialID}
@@ -192,4 +193,28 @@ func (o *options) saveLogin(token string, identity api.Identity) error {
 		}
 	}
 	return nil
+}
+
+// refreshLogin rotates a saved browser login, reusing a pair another process already rotated.
+func refreshLogin(credentialID string) func(context.Context, string) (string, error) {
+	return func(ctx context.Context, rejected string) (string, error) {
+		credential, err := auth.LoadCredential(credentialID)
+		if err != nil {
+			return "", err
+		}
+		if credential.AccessToken != rejected {
+			return credential.AccessToken, nil
+		}
+		refreshed, err := oauthClient.Refresh(ctx, credential.RefreshToken)
+		if err != nil {
+			if current, loadErr := auth.LoadCredential(credentialID); loadErr == nil && current.AccessToken != rejected {
+				return current.AccessToken, nil
+			}
+			return "", err
+		}
+		if err := auth.SaveCredential(credentialID, refreshed); err != nil {
+			return "", err
+		}
+		return refreshed.AccessToken, nil
+	}
 }

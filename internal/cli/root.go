@@ -93,11 +93,17 @@ func (o *options) load(command *cobra.Command) error {
 }
 
 func (o *options) client(command *cobra.Command) (*api.Client, string, error) {
-	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), o.preferences.Profiles[o.profileName].CredentialID)
+	credentialID := o.preferences.Profiles[o.profileName].CredentialID
+	token, source, err := auth.Resolve(o.token, command.Flags().Changed("token"), os.Getenv("SLIPLANE_TOKEN"), credentialID)
 	if err != nil {
 		return nil, "", err
 	}
 	client := api.New(o.baseURL, token)
+	if source == "keychain" {
+		if credential, err := auth.LoadCredential(credentialID); err == nil && credential.RefreshToken != "" {
+			client.SetRefresh(refreshLogin(credentialID))
+		}
+	}
 	if o.profileName != "" {
 		if err := o.verifyIdentity(command.Context(), client); err != nil {
 			return nil, "", err
