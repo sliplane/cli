@@ -16,6 +16,15 @@ curl -fsSL https://sliplane.io/install.sh | sh
 Or with Go: `go install github.com/sliplane/cli/cmd/sliplane@latest`.
 Binaries are on the [releases page](https://github.com/sliplane/cli/releases).
 
+## Install with your coding agent
+
+Paste this into Claude Code, Codex, Cursor, or any other coding agent and it
+installs and sets up the CLI for you:
+
+```text
+Fetch and follow the instructions at https://raw.githubusercontent.com/sliplane/cli/main/docs/agent-setup.md to install and set up the Sliplane CLI for me.
+```
+
 ## Get started
 
 ```sh

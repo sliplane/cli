@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/sliplane/cli/internal/buildinfo"
@@ -81,6 +82,10 @@ func autoUpdate(root *cobra.Command, args []string) {
 		return
 	}
 	if target, _, err := root.Find(args); err == nil && target.Parent() == root && target.Name() == "update" {
+		return
+	}
+	// Shells run these at startup and on every Tab press.
+	if len(args) > 0 && slices.Contains([]string{"completion", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd}, args[0]) {
 		return
 	}
 	path, err := update.StatePath()

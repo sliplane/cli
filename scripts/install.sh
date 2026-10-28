@@ -30,6 +30,29 @@ executable_version() {
   '
 }
 
+# find_shell_profile sets the profile the installer manages and the lines it adds there.
+find_shell_profile() {
+  quoted_directory=$(printf '%s' "$install_directory" | sed "s/'/'\\\\''/g")
+  path_line="export PATH='$quoted_directory':\"\$PATH\""
+  config_file=
+  completion_line=
+  case "${SHELL:-}" in
+    */zsh)
+      config_file=${ZDOTDIR:-$HOME}/.zshrc
+      # Completion needs compinit, which a plain zsh profile does not load.
+      completion_line='if command -v sliplane >/dev/null; then command -v compdef >/dev/null || { autoload -Uz compinit && compinit -i; }; eval "$(sliplane completion zsh)"; fi'
+      ;;
+    */bash)
+      config_file=$HOME/.bashrc
+      if [ ! -f "$config_file" ] && [ -f "$HOME/.bash_profile" ]; then
+        config_file=$HOME/.bash_profile
+      fi
+      # Completion needs the bash-completion package.
+      completion_line='if command -v sliplane >/dev/null && declare -F _get_comp_words_by_ref >/dev/null; then eval "$(sliplane completion bash)"; fi'
+      ;;
+  esac
+}
+
 # configure_path offers shell setup without reading answers from the piped script.
 configure_path() {
   if [ "$setup_path" = false ]; then
@@ -37,18 +60,6 @@ configure_path() {
       *":$install_directory:"*) return ;;
     esac
   fi
-  quoted_directory=$(printf '%s' "$install_directory" | sed "s/'/'\\\\''/g")
-  path_line="export PATH='$quoted_directory':\"\$PATH\""
-  config_file=
-  case "${SHELL:-}" in
-    */zsh) config_file=${ZDOTDIR:-$HOME}/.zshrc ;;
-    */bash)
-      config_file=$HOME/.bashrc
-      if [ ! -f "$config_file" ] && [ -f "$HOME/.bash_profile" ]; then
-        config_file=$HOME/.bash_profile
-      fi
-      ;;
-  esac
 
   if [ -n "$config_file" ] && [ -f "$config_file" ] && grep -Fqx "$path_line" "$config_file"; then
     if [ "$setup_path" = false ]; then
@@ -62,7 +73,7 @@ configure_path() {
     if [ "$setup_path" = true ]; then
       response=y
     elif [ "$non_interactive" = false ] && [ -t 1 ]; then
-      printf '\nAdd Sliplane to PATH in %s? (Y/n) ' "$config_file"
+      printf '\nAdd Sliplane to PATH and set up shell completion in %s? (Y/n) ' "$config_file"
       if ! read -r response 2>/dev/null < /dev/tty; then
         response=n
       fi
@@ -81,6 +92,17 @@ configure_path() {
   esac
   printf '\nAdd the installation directory to your shell PATH. For bash/zsh, add this line to your shell profile:\n\n  %s\n' "$path_line"
   printf '\nRun the line in this terminal too to use Sliplane immediately.\n'
+}
+
+# configure_completion loads shell completion wherever the installer added
+# Sliplane to PATH. The binary generates it, so it stays current after updates.
+configure_completion() {
+  if [ -z "$completion_line" ] || [ ! -f "$config_file" ] || ! grep -Fqx "$path_line" "$config_file" \
+    || grep -Fqx "$completion_line" "$config_file"; then
+    return
+  fi
+  printf '%s\n' "$completion_line" >> "$config_file" \
+    || printf '\nCould not set up shell completion in %s.\n' "$config_file" >&2
 }
 
 # install_sliplane keeps the full operation in a function so a truncated piped script cannot run it.
@@ -213,7 +235,9 @@ install_sliplane() {
       printf 'Reinstalled Sliplane %s\n' "$version"
     fi
   fi
+  find_shell_profile
   configure_path
+  configure_completion
   current=$(command -v sliplane || true)
   if [ "$setup_path" = false ] && [ -n "$current" ] && [ "$current" != "$destination" ]; then
     printf '\nYour PATH currently selects %s. Put %s first to use this installation.\n' "$current" "$install_directory"
