@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -57,17 +60,22 @@ func New(baseURL, token string) *Client {
 
 // request sends one authenticated request and never prints transport or response bodies.
 func (c *Client) request(ctx context.Context, method, path string, input, output any) error {
+	_, err := c.requestHeaders(ctx, method, path, input, output)
+	return err
+}
+
+func (c *Client) requestHeaders(ctx context.Context, method, path string, input, output any) (http.Header, error) {
 	var body io.Reader
 	if input != nil {
 		encoded, err := json.Marshal(input)
 		if err != nil {
-			return fmt.Errorf("encode API request: %w", err)
+			return nil, fmt.Errorf("encode API request: %w", err)
 		}
 		body = bytes.NewReader(encoded)
 	}
 	request, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 	if err != nil {
-		return fmt.Errorf("create API request: %w", err)
+		return nil, fmt.Errorf("create API request: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
@@ -78,9 +86,9 @@ func (c *Client) request(ctx context.Context, method, path string, input, output
 	response, err := c.http.Do(request)
 	if err != nil {
 		if ctx.Err() != nil {
-			return ctx.Err()
+			return nil, ctx.Err()
 		}
-		return fmt.Errorf("API request failed: %s", strings.ReplaceAll(err.Error(), c.token, "[redacted]"))
+		return nil, fmt.Errorf("API request failed: %s", strings.ReplaceAll(err.Error(), c.token, "[redacted]"))
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -89,21 +97,43 @@ func (c *Client) request(ctx context.Context, method, path string, input, output
 		_ = json.NewDecoder(io.LimitReader(response.Body, 64*1024)).Decode(apiError)
 		apiError.Message = strings.ReplaceAll(apiError.Message, c.token, "[redacted]")
 		apiError.Code = strings.ReplaceAll(apiError.Code, c.token, "[redacted]")
-		return apiError
+		return nil, apiError
 	}
 	if output == nil {
-		return nil
+		return response.Header, nil
 	}
 	if err := json.NewDecoder(response.Body).Decode(output); err != nil {
-		return fmt.Errorf("decode API response: %w", err)
+		return nil, fmt.Errorf("decode API response: %w", err)
 	}
-	return nil
+	return response.Header, nil
 }
 
 func (c *Client) Me(ctx context.Context) (Identity, error) {
 	var identity Identity
 	err := c.request(ctx, http.MethodGet, "/me", nil, &identity)
 	return identity, err
+}
+
+// ClientIP returns the public address the API saw over network ("tcp4" or "tcp6").
+// Proxies are bypassed because their address is not the source of a direct database connection.
+func (c *Client) ClientIP(ctx context.Context, network string) (netip.Addr, error) {
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DialContext = func(ctx context.Context, _, address string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, address)
+	}
+	defer transport.CloseIdleConnections()
+	direct := &Client{baseURL: c.baseURL, token: c.token, http: &http.Client{Transport: transport, Timeout: c.http.Timeout, CheckRedirect: c.http.CheckRedirect}}
+	header, err := direct.requestHeaders(ctx, http.MethodGet, "/me", nil, new(Identity))
+	if err != nil {
+		return netip.Addr{}, err
+	}
+	address, err := netip.ParseAddr(header.Get("Sliplane-Client-IP"))
+	if err != nil || address.Zone() != "" {
+		return netip.Addr{}, errors.New("API did not report a valid public IP address")
+	}
+	return address.Unmap(), nil
 }
 
 func (c *Client) Projects(ctx context.Context) ([]Project, error) {
