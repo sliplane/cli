@@ -635,8 +635,8 @@ github.com/uber/athenadriver v1.1.15 h1:z/hivAcXmGgUCVoXgVvwwIzc4auTeF3TCmwyFTtd
 github.com/uber/athenadriver v1.1.15/go.mod h1:RnKD7+9Aup8iuFfhK+I26U+z137IXWeoLaEZDepd0Eg=
 github.com/vertica/vertica-sql-go v1.3.8 h1:FomjkM3cam9yE6zSic31flNWPLdsZbYGK9ihlLtbF1Y=
 github.com/vertica/vertica-sql-go v1.3.8/go.mod h1:c4OZ8lq1Ztc18w8a0nG+dzQh69BzJRcKN2LZOnYbERI=
-github.com/xo/dburl v0.25.1 h1:7C0ORkjF7bCbl98kIWEfaKVXbhxxatN1CrcXdcM2IUI=
-github.com/xo/dburl v0.25.1/go.mod h1:uazlaAQxj4gkshhfuuYyvwCBouOmNnG2aDxTCFZpmL4=
+github.com/xo/dburl v0.53.0 h1:GJ/ZHJDHI8LhwUcC384TBWq2wCHZnfEFOk73eDnoM+Q=
+github.com/xo/dburl v0.53.0/go.mod h1:uazlaAQxj4gkshhfuuYyvwCBouOmNnG2aDxTCFZpmL4=
 github.com/xo/tblfmt v0.18.3 h1:2LTZxeK4KgB6wnQAzwm/yIAAMPNQNfBM5BFiA4ArDFI=
 github.com/xo/tblfmt v0.18.3/go.mod h1:9v9Ij0sQvW0FZWOCJIIpGBBguS6jUBQUaC9WeeJN8sc=
 github.com/xo/terminfo v1.2.0 h1:d0ZTOCpuGE0lwSAOs0zcJjwz3jWQyqcRt9XbGJpCOl4=
