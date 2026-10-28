@@ -14,3 +14,6 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # usql still builds against dburl v0.25.x; newer dburl removes URL.GoDriver.
+      - dependency-name: github.com/xo/dburl
