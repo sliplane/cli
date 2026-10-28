@@ -17,7 +17,8 @@ curl -fsSL https://github.com/sliplane/cli/releases/latest/download/install.sh |
 ```
 
 Installs to `~/.sliplane/bin` and sets up PATH for your current and future
-terminals. Run the same command again to update.
+terminals. Run the same command again to update. The installer only installs
+releases signed by a Sliplane maintainer's hardware key (requires OpenSSH 8.2+).
 
 To install a specific version, replace `0.1.0` in both places with a published
 release:
