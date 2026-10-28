@@ -4,32 +4,67 @@ on:
   push:
     tags: ['v*']
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  verify-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Credentials stay for the tag fetch below; this read-only job uploads nothing.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0 # zizmor: ignore[artipacked]
+        with:
+          fetch-depth: 0
+      - name: Require a maintainer YubiKey signature on a tag from main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Checkout can store annotated tags as lightweight ones; fetch the real tag object.
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          # Trust the keys on main, not keys the tagged commit could have added.
+          git show origin/main:.github/allowed_signers > "$RUNNER_TEMP/allowed_signers"
+          git -c gpg.ssh.allowedSignersFile="$RUNNER_TEMP/allowed_signers" verify-tag "$TAG"
+          git merge-base --is-ancestor "$TAG^{commit}" origin/main \
+            || { echo "::error::$TAG must point to a commit on main"; exit 1; }
+
   check:
+    needs: verify-tag
+    permissions:
+      contents: read
     uses: ./.github/workflows/ci.yml
 
   release:
     needs: check
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v6
+          # Never build a release from a cache that pull request runs could have written.
+          cache: false
+      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
           version: v2.15.1
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Artifact attestations need a public repository on the Team plan.
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt
