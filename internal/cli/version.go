@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sliplane/cli/internal/buildinfo"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/buildinfo"
 )
-
-var commit = "unknown"
 
 func (o *options) versionCommand() *cobra.Command {
 	return &cobra.Command{
@@ -21,9 +19,9 @@ func (o *options) versionCommand() *cobra.Command {
 		},
 		RunE: func(command *cobra.Command, _ []string) error {
 			if o.output == "json" {
-				return writeJSON(command.OutOrStdout(), map[string]string{"version": buildinfo.Version, "commit": commit})
+				return writeJSON(command.OutOrStdout(), map[string]string{"version": buildinfo.Version, "commit": buildinfo.Commit})
 			}
-			_, err := fmt.Fprintf(command.OutOrStdout(), "sliplane %s (commit %s)\n", terminalText(buildinfo.Version), terminalText(commit))
+			_, err := fmt.Fprintf(command.OutOrStdout(), "sliplane %s (commit %s)\n", terminalText(buildinfo.Version), terminalText(buildinfo.Commit))
 			return err
 		},
 	}

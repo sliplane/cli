@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestMetricHistory(t *testing.T) {

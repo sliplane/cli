@@ -12,8 +12,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/NimbleMarkets/ntcharts/v2/linechart/timeserieslinechart"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/sliplane/cli/internal/api"
 	"golang.org/x/term"
-	"sliplane-cli/internal/api"
 )
 
 type timedMetric struct {

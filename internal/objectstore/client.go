@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"sliplane-cli/internal/buildinfo"
+	"github.com/sliplane/cli/internal/buildinfo"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"

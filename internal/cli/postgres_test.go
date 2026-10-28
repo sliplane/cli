@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestPostgresAllowsIP(t *testing.T) {

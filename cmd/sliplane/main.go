@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 
-	"sliplane-cli/internal/cli"
+	"github.com/sliplane/cli/internal/cli"
 )
 
 func main() {

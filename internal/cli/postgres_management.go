@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 func (o *options) postgresCreateCommand() *cobra.Command {

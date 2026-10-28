@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sliplane/cli/internal/api"
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
 	"github.com/zalando/go-keyring"
-	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
 )
 
 func TestS3KeyLifecycle(t *testing.T) {

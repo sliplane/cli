@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 func (o *options) selectServer(command *cobra.Command, client *api.Client, query string) (choice, error) {

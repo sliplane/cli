@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 func (o *options) metricsCommand(kind string) *cobra.Command {

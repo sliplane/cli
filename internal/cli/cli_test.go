@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/config"
+	"github.com/sliplane/cli/internal/api"
+	"github.com/sliplane/cli/internal/config"
 )
 
 func runCommand(t *testing.T, serverURL string, args ...string) (string, string, error) {

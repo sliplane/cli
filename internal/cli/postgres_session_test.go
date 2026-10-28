@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/sliplane/cli/internal/api"
 	"github.com/xo/dburl"
-	"sliplane-cli/internal/api"
 )
 
 func TestPostgresConnectionURL(t *testing.T) {

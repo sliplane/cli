@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/netip"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 // checkPostgresAccess skips public-IP detection when the entire destination family is already allowed.

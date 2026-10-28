@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sliplane/cli/internal/api"
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
+	"github.com/sliplane/cli/internal/presets"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
-	"sliplane-cli/internal/presets"
 )
 
 type options struct {

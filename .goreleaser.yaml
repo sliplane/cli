@@ -17,7 +17,7 @@ builds:
       - -trimpath
       - -mod=readonly
     ldflags:
-      - -s -w -X sliplane-cli/internal/buildinfo.Version={{ .Version }} -X sliplane-cli/internal/cli.commit={{ .FullCommit }}
+      - -s -w -X github.com/sliplane/cli/internal/buildinfo.Version={{ .Version }} -X github.com/sliplane/cli/internal/buildinfo.Commit={{ .FullCommit }}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:

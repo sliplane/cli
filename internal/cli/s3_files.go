@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sliplane/cli/internal/objectstore"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/objectstore"
 )
 
 func (o *options) s3ListCommand() *cobra.Command {

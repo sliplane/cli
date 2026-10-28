@@ -3,8 +3,8 @@ package cli
 import (
 	"errors"
 
+	"github.com/sliplane/cli/internal/config"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/config"
 )
 
 func (o *options) configCommand() *cobra.Command {

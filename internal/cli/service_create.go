@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 type serviceCreateFlags struct {

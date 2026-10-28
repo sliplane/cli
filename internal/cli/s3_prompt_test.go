@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
 	"github.com/zalando/go-keyring"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
 )
 
 func TestS3FirstUse(t *testing.T) {

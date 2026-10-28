@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestMetricsRanges(t *testing.T) {

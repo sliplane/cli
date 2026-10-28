@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 // serviceEnvironment applies files, secret flags, then public flags, retaining only the last entry per key.
