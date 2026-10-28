@@ -1,0 +1,2 @@
+sliplane-release namespaces="git,sliplane-release" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIEMxU+DK5mRMKnlZCp0U4+UzaJK3KS/FOkbi9ZnKtXQzAAAAFHNzaDpzbGlwbGFuZS1yZWxlYXNl yubikey-main
+sliplane-release namespaces="git,sliplane-release" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIJ0aJwmT4kCuEjNUVoDqluxHf2AVT9gUX0KbqqG/Ni85AAAAFHNzaDpzbGlwbGFuZS1yZWxlYXNl yubikey-backup

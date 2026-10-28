@@ -16,6 +16,9 @@ curl -fsSL https://sliplane.io/install.sh | sh
 Or with Go: `go install github.com/sliplane/cli/cmd/sliplane@latest`.
 Binaries are on the [releases page](https://github.com/sliplane/cli/releases).
 
+Installed releases update themselves in the background once a day. Run
+`sliplane update` to update now, or set `SLIPLANE_NO_AUTO_UPDATE=1` to opt out.
+
 ## Get started
 
 ```sh

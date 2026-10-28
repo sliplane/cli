@@ -6,9 +6,11 @@ import (
 )
 
 // Version and Commit are set with -ldflags by make and release builds.
+// Release is "true" only in published releases, which update themselves.
 var (
 	Version = "dev"
 	Commit  = "unknown"
+	Release = "false"
 )
 
 // init falls back to Go's module metadata for go install and plain go build.

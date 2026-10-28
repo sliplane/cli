@@ -45,6 +45,7 @@ enroll() {
   fi
   line="sliplane-release namespaces=\"git,sliplane-release\" $(cut -d' ' -f1,2 "$key.pub") $1"
   printf '%s\n' "$line" >> "$signers"
+  printf '%s\n' "$line" >> "$root/internal/update/allowed_signers"
   awk -v line="$line" '/<<.SIGNERS.$/ { inside=1 } inside && $0 == "SIGNERS" { print line; inside=0 } { print }' \
     "$installer" > "$work/install.sh" && cat "$work/install.sh" > "$installer"
   printf 'Trusted %s. Test it with `make signing-check KEY=%s`, then merge the change to main.\n' "$1" "$1"

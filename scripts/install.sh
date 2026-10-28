@@ -23,7 +23,7 @@ SIGNERS
 }
 
 executable_version() {
-  version_output=$("$1" version -o text </dev/null 2>/dev/null) || return 1
+  version_output=$(SLIPLANE_NO_AUTO_UPDATE=1 "$1" version -o text </dev/null 2>/dev/null) || return 1
   printf '%s\n' "$version_output" | awk '
     NF == 4 && $1 == "sliplane" && $3 == "(commit" && $4 ~ /\)$/ { version=$2; count++ }
     END { if (NR != 1 || count != 1) exit 1; print version }
