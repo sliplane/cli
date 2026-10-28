@@ -18,7 +18,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/spf13/cobra v1.10.2
 	github.com/xo/dburl v0.25.1
-	github.com/xo/usql v0.21.5
+	github.com/xo/usql v0.21.6
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/term v0.47.0
 )
