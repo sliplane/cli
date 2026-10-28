@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestServiceCreateRequests(t *testing.T) {

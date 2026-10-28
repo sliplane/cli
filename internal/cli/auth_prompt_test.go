@@ -19,10 +19,10 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/term"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
 )
 
 // Run the terminal UI in its own process, as the other interactive prompt tests do.

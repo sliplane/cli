@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sliplane/cli/internal/api"
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
 )
 
 func (o *options) s3KeyCommand() *cobra.Command {

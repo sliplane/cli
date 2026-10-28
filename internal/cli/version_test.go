@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"sliplane-cli/internal/buildinfo"
+	"github.com/sliplane/cli/internal/buildinfo"
 )
 
 func TestVersionWithoutConfig(t *testing.T) {
@@ -52,12 +52,12 @@ func TestVersionWithoutConfig(t *testing.T) {
 				if err := json.Unmarshal(stdout.Bytes(), &metadata); err != nil {
 					t.Fatal(err)
 				}
-				if metadata["version"] != buildinfo.Version || metadata["commit"] != commit || len(metadata) != 2 {
+				if metadata["version"] != buildinfo.Version || metadata["commit"] != buildinfo.Commit || len(metadata) != 2 {
 					t.Fatalf("unexpected metadata: %v", metadata)
 				}
 				return
 			}
-			if want := "sliplane " + buildinfo.Version + " (commit " + commit + ")\n"; stdout.String() != want {
+			if want := "sliplane " + buildinfo.Version + " (commit " + buildinfo.Commit + ")\n"; stdout.String() != want {
 				t.Fatalf("output %q; want %q", stdout.String(), want)
 			}
 		})

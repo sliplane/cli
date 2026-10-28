@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestS3Create(t *testing.T) {

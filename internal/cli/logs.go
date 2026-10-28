@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
 )
 
 const logPageLimit = 500 // Public API maximum; a full page may hide additional lines.

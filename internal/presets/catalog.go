@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 const URL = "https://sliplane.io/api/presets"

@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/sliplane/cli/internal/api"
 	"golang.org/x/term"
-	"sliplane-cli/internal/api"
 )
 
 func TestDeployPromptProcess(t *testing.T) {

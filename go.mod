@@ -1,4 +1,4 @@
-module sliplane-cli
+module github.com/sliplane/cli
 
 go 1.26.10
 

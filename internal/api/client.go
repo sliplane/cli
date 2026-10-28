@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"sliplane-cli/internal/buildinfo"
+	"github.com/sliplane/cli/internal/buildinfo"
 )
 
 const BaseURL = "https://ctrl.sliplane.io/v0"

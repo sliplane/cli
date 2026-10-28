@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 type choice struct {

@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"sliplane-cli/internal/api"
+	"github.com/sliplane/cli/internal/api"
 )
 
 func TestSSHSessionLifecycle(t *testing.T) {

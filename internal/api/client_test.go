@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"sliplane-cli/internal/buildinfo"
+	"github.com/sliplane/cli/internal/buildinfo"
 )
 
 func TestClientContract(t *testing.T) {

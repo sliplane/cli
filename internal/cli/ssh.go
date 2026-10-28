@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sliplane/cli/internal/api"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
-	"sliplane-cli/internal/api"
 )
 
 func (o *options) sshCommand() *cobra.Command {

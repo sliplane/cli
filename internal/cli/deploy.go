@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"charm.land/huh/v2"
+	"github.com/sliplane/cli/internal/api"
+	"github.com/sliplane/cli/internal/presets"
 	"github.com/spf13/cobra"
-	"sliplane-cli/internal/api"
-	"sliplane-cli/internal/presets"
 )
 
 func (o *options) presetCommand() *cobra.Command {

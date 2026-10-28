@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/sliplane/cli/internal/auth"
+	"github.com/sliplane/cli/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
-	"sliplane-cli/internal/auth"
-	"sliplane-cli/internal/config"
 )
 
 func TestLoginTokenSelection(t *testing.T) {

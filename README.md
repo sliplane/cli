@@ -34,6 +34,14 @@ Download the archive for your platform from the
 [Releases page](https://github.com/sliplane/cli/releases), extract it, and place
 the `sliplane` binary in a directory on your PATH.
 
+### Go
+
+With Go installed (see [go.mod](go.mod) for the required version):
+
+```sh
+go install github.com/sliplane/cli/cmd/sliplane@latest
+```
+
 ## Getting started
 
 1. Sign in to [Sliplane](https://sliplane.io) in your browser, select your team,
