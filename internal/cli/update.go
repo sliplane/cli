@@ -18,7 +18,7 @@ func (o *options) updateCommand() *cobra.Command {
 	var background bool
 	command := &cobra.Command{
 		Use: "update", Short: "Update Sliplane to the latest release", Args: validateArguments,
-		Long:              "Update Sliplane to the latest signed release. Releases also update themselves in the background once a day; set SLIPLANE_NO_AUTO_UPDATE=1 to turn that off.",
+		Long:              "Update Sliplane to the latest signed release. Releases also update themselves in the background every 30 minutes; set SLIPLANE_NO_AUTO_UPDATE=1 to turn that off.",
 		PersistentPreRunE: o.checkOutput,
 		RunE: func(command *cobra.Command, _ []string) error {
 			if buildinfo.Release != "true" {
@@ -74,7 +74,7 @@ func (o *options) updateCommand() *cobra.Command {
 	return command
 }
 
-// autoUpdate announces the last background update and, at most once a day,
+// autoUpdate announces the last background update and, at most every 30 minutes,
 // starts the next one in a detached process so that no command waits for it.
 // The new version takes effect from the next command.
 func autoUpdate(root *cobra.Command, args []string) {

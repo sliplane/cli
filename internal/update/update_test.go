@@ -185,14 +185,14 @@ func TestBackgroundState(t *testing.T) {
 	if !Claim(path, now) {
 		t.Fatal("first check was not due")
 	}
-	if Claim(path, now.Add(23*time.Hour)) {
-		t.Fatal("checked again within a day")
+	if Claim(path, now.Add(29*time.Minute)) {
+		t.Fatal("checked again within 30 minutes")
 	}
 	if !Claim(path, now.Add(-time.Hour)) {
 		t.Fatal("a check from the future blocked updates")
 	}
-	if !Claim(path, now.Add(25*time.Hour)) {
-		t.Fatal("check was not due after a day")
+	if !Claim(path, now.Add(31*time.Minute)) {
+		t.Fatal("check was not due after 30 minutes")
 	}
 
 	if _, ok := Replaced(path, "1.2.3"); ok {
@@ -207,7 +207,7 @@ func TestBackgroundState(t *testing.T) {
 	if _, ok := Replaced(path, "1.2.3"); ok {
 		t.Fatal("announced the same update twice")
 	}
-	if Claim(path, now.Add(25*time.Hour)) {
+	if Claim(path, now.Add(32*time.Minute)) {
 		t.Fatal("recording an update reset the last check")
 	}
 
