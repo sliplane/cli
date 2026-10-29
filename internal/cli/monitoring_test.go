@@ -65,3 +65,40 @@ func TestMetricsInvalidRanges(t *testing.T) {
 		}
 	}
 }
+
+func TestTopLevelMetricsResolvesServiceOrServer(t *testing.T) {
+	for _, test := range []struct{ query, want, path string }{
+		{"api", "service · api", "/projects/p1/services/s1/metrics"},
+		{"node", "server · node", "/servers/server1/metrics"},
+		{"shared", "matches both a service and a server", ""},
+		{"missing", `no service or server named "missing"`, ""},
+	} {
+		t.Run(test.query, func(t *testing.T) {
+			requested := ""
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/projects":
+					fmt.Fprint(w, `[{"id":"p1"}]`)
+				case "/projects/p1/services":
+					fmt.Fprint(w, `[{"id":"s1","name":"api","projectId":"p1"},{"id":"s2","name":"shared","projectId":"p1"}]`)
+				case "/servers":
+					fmt.Fprint(w, `[{"id":"server1","name":"node"},{"id":"server2","name":"shared"}]`)
+				default:
+					requested = r.URL.Path
+					fmt.Fprint(w, `[{"createdAt":"2026-10-04T10:00:00Z","cpuUsage":12.5,"usedMemory":512,"freeMemory":512,"totalMemory":1024}]`)
+				}
+			}))
+			defer server.Close()
+			stdout, _, err := runCommand(t, server.URL, "metrics", test.query)
+			if test.path == "" {
+				if err == nil || !strings.Contains(err.Error(), test.want) || requested != "" {
+					t.Fatalf("err=%v requested=%s", err, requested)
+				}
+				return
+			}
+			if err != nil || requested != test.path || !strings.Contains(stdout, test.want) {
+				t.Fatalf("output=%s requested=%s err=%v", stdout, requested, err)
+			}
+		})
+	}
+}
