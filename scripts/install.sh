@@ -55,12 +55,17 @@ find_shell_profile() {
 
 # print_reload_hint shows how to load the updated profile, since the installer
 # cannot change the environment of the shell that started it.
+# A profile under HOME keeps the ~/ prefix unquoted so that it still expands.
 print_reload_hint() {
+  home_prefix=
   profile_display=$config_file
   case "$config_file" in
-    "$HOME"/*) profile_display="~${config_file#"$HOME"}" ;;
+    "$HOME"/*) home_prefix='~/' profile_display=${config_file#"$HOME"/} ;;
   esac
-  printf '\nTo use Sliplane in this terminal:\n\n  source %s\n' "$profile_display"
+  case "$profile_display" in
+    *[!A-Za-z0-9_./-]*) profile_display="'$(printf '%s' "$profile_display" | sed "s/'/'\\\\''/g")'" ;;
+  esac
+  printf '\nTo use Sliplane in this terminal:\n\n  source %s%s\n' "$home_prefix" "$profile_display"
 }
 
 # configure_path offers shell setup without reading answers from the piped script.

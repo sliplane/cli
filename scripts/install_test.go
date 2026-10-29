@@ -216,6 +216,7 @@ func TestInstallPath(t *testing.T) {
 		{name: "existing PATH needs no manual setup", shell: "/bin/bash", profile: ".bashrc", alreadyOnPath: true},
 		{name: "explicit setup persists an existing PATH", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--setup-path"}, alreadyOnPath: true, wantSetup: true},
 		{name: "interactive default accepts", shell: "/bin/zsh", profile: ".zshrc", terminal: true, reply: "\n", wantPrompt: true, wantSetup: true},
+		{name: "interactive hint quotes custom config directory", shell: "/bin/zsh", profile: ".zshrc", terminal: true, reply: "\n", wantPrompt: true, wantSetup: true, customZdotdir: true},
 		{name: "interactive decline preserves profile", shell: "/bin/bash", profile: ".bashrc", terminal: true, reply: "n\n", wantPrompt: true, existingProfile: true},
 		{name: "noninteractive flag skips terminal prompt", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--non-interactive"}, terminal: true},
 	} {
@@ -234,7 +235,10 @@ func TestInstallPath(t *testing.T) {
 			configDirectory := home
 			command.Env = append(command.Env, "HOME="+home, "SHELL="+test.shell)
 			if test.customZdotdir {
-				configDirectory = t.TempDir()
+				configDirectory = filepath.Join(home, "user's zsh $config")
+				if err := os.Mkdir(configDirectory, 0700); err != nil {
+					t.Fatal(err)
+				}
 				command.Env = append(command.Env, "ZDOTDIR="+configDirectory)
 			}
 			if test.alreadyOnPath {
@@ -298,8 +302,23 @@ func TestInstallPath(t *testing.T) {
 			if strings.Contains(string(output), "export PATH=") {
 				t.Fatalf("setup printed PATH instructions instead of a profile reload: %s", output)
 			}
-			if test.wantPrompt && !strings.Contains(string(output), "source ~/"+test.profile) {
-				t.Fatalf("interactive setup did not explain how to reload the profile: %s", output)
+			if test.wantPrompt {
+				hint := ""
+				for _, line := range strings.Split(strings.ReplaceAll(string(output), "\r", ""), "\n") {
+					if strings.HasPrefix(line, "  source ") {
+						hint = line
+					}
+				}
+				if !strings.HasPrefix(hint, "  source ~/") {
+					t.Fatalf("interactive setup did not explain how to reload the profile: %s", output)
+				}
+				// The hint must load the profile it names when copied into a shell.
+				check := exec.Command("bash", "-c", hint+"\nprintf '%s' \"$PATH\"")
+				check.Env = append(command.Env, "HOME="+home)
+				path, err := check.Output()
+				if err != nil || !strings.HasPrefix(string(path), installDirectory+":") {
+					t.Fatalf("reload hint %q does not select installation: %v %s", hint, err, path)
+				}
 			}
 			if test.existingProfile && !bytes.HasPrefix(contents, original) {
 				t.Fatal("lost existing configuration")
