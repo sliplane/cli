@@ -11,7 +11,7 @@ import (
 // disableVariable turns off automatic updates when set to any value.
 const disableVariable = "SLIPLANE_NO_AUTO_UPDATE"
 
-const checkInterval = 24 * time.Hour
+const checkInterval = 30 * time.Minute
 
 // state is what automatic updates remember between commands.
 type state struct {

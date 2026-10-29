@@ -127,9 +127,9 @@ modules only after a seven-day cooldown. CI runs `go mod verify` and
 
 ## Automatic updates
 
-Builds from the Release workflow set `buildinfo.Release`. Once a day, the first
-command they run starts `sliplane update --background` in a detached process and
-continues without waiting. The update makes the same checks as `install.sh`,
+Builds from the Release workflow set `buildinfo.Release`. Every 30 minutes, the
+first command they run starts `sliplane update --background` in a detached
+process and continues without waiting. The update makes the same checks as `install.sh`,
 then renames the new executable over the old one; the next command uses it and
 prints `Updated Sliplane OLD → NEW`. The last check time lives in
 `update.json` in the OS user cache directory.
