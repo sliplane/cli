@@ -2,12 +2,15 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/sliplane/cli/internal/api"
 )
+
+var errNotFound = errors.New("not found")
 
 type choice struct {
 	id   string
@@ -38,7 +41,7 @@ func resolve(kind, query string, choices []choice) (int, error) {
 		return match, nil
 	}
 	if len(ids) == 0 {
-		return 0, fmt.Errorf("%s %q not found", kind, query)
+		return 0, fmt.Errorf("%s %q %w", kind, query, errNotFound)
 	}
 	sort.Strings(ids)
 	hint := ""
