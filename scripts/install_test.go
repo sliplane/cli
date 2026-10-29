@@ -295,8 +295,11 @@ func TestInstallPath(t *testing.T) {
 			if readError != nil {
 				t.Fatal(readError)
 			}
-			if !test.wantPrompt && strings.Contains(string(output), "export PATH=") {
-				t.Fatalf("automatic setup printed unnecessary PATH instructions: %s", output)
+			if strings.Contains(string(output), "export PATH=") {
+				t.Fatalf("setup printed PATH instructions instead of a profile reload: %s", output)
+			}
+			if test.wantPrompt && !strings.Contains(string(output), "source ~/"+test.profile) {
+				t.Fatalf("interactive setup did not explain how to reload the profile: %s", output)
 			}
 			if test.existingProfile && !bytes.HasPrefix(contents, original) {
 				t.Fatal("lost existing configuration")

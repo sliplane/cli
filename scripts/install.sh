@@ -53,6 +53,16 @@ find_shell_profile() {
   esac
 }
 
+# print_reload_hint shows how to load the updated profile, since the installer
+# cannot change the environment of the shell that started it.
+print_reload_hint() {
+  profile_display=$config_file
+  case "$config_file" in
+    "$HOME"/*) profile_display="~${config_file#"$HOME"}" ;;
+  esac
+  printf '\nTo use Sliplane in this terminal:\n\n  source %s\n' "$profile_display"
+}
+
 # configure_path offers shell setup without reading answers from the piped script.
 configure_path() {
   if [ "$setup_path" = false ]; then
@@ -63,7 +73,7 @@ configure_path() {
 
   if [ -n "$config_file" ] && [ -f "$config_file" ] && grep -Fqx "$path_line" "$config_file"; then
     if [ "$setup_path" = false ]; then
-      printf '\nTo use Sliplane in this terminal:\n\n  %s\n' "$path_line"
+      print_reload_hint
     fi
     return
   fi
@@ -83,7 +93,7 @@ configure_path() {
     y|Y|yes|Yes|'')
       if printf '\n# Added by the Sliplane installer\n%s\n' "$path_line" >> "$config_file"; then
         if [ "$setup_path" = false ]; then
-          printf '\nTo use Sliplane in this terminal:\n\n  %s\n' "$path_line"
+          print_reload_hint
         fi
         return
       fi
