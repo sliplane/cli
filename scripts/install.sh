@@ -50,6 +50,13 @@ find_shell_profile() {
       # Completion needs the bash-completion package.
       completion_line='if command -v sliplane >/dev/null && declare -F _get_comp_words_by_ref >/dev/null; then eval "$(sliplane completion bash)"; fi'
       ;;
+    */fish)
+      config_file=${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish
+      # fish single quotes only escape backslashes and quotes.
+      quoted_directory=$(printf '%s' "$install_directory" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g")
+      path_line="set -gx PATH '$quoted_directory' \$PATH"
+      completion_line='if command -q sliplane; sliplane completion fish | source; end'
+      ;;
   esac
 }
 
@@ -96,7 +103,8 @@ configure_path() {
   fi
   case "$response" in
     y|Y|yes|Yes|'')
-      if printf '\n# Added by the Sliplane installer\n%s\n' "$path_line" >> "$config_file"; then
+      if mkdir -p "$(dirname "$config_file")" 2>/dev/null \
+        && printf '\n# Added by the Sliplane installer\n%s\n' "$path_line" >> "$config_file"; then
         if [ "$setup_path" = false ]; then
           print_reload_hint
         fi
@@ -105,7 +113,11 @@ configure_path() {
       printf '\nCould not update %s; Sliplane is installed.\n' "$config_file" >&2
       ;;
   esac
-  printf '\nAdd the installation directory to your shell PATH. For bash/zsh, add this line to your shell profile:\n\n  %s\n' "$path_line"
+  if [ -n "$config_file" ]; then
+    printf '\nAdd the installation directory to your shell PATH. Add this line to %s:\n\n  %s\n' "$config_file" "$path_line"
+  else
+    printf '\nAdd the installation directory to your shell PATH. For bash/zsh, add this line to your shell profile:\n\n  %s\n' "$path_line"
+  fi
   printf '\nRun the line in this terminal too to use Sliplane immediately.\n'
 }
 
