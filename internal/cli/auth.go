@@ -20,7 +20,7 @@ func (o *options) authCommand() *cobra.Command {
 	command := &cobra.Command{Use: "auth", Short: "Manage authentication"}
 	command.AddCommand(&cobra.Command{
 		Use: "login", Short: "Log in through your browser or save an API token", Args: validateArguments,
-		Long:    "Log in through a local browser using its active Sliplane team. Sign in to\nsliplane.io first. When switching teams, choose to overwrite the current profile,\ncreate a new profile, or cancel. Overwriting clears the old team's project and S3 credentials.\nBrowser logins renew automatically while you use the CLI at least once every 7 days.\nSupply --token or SLIPLANE_TOKEN to save an API token instead.",
+		Long:    "Log in through a local browser and choose the Sliplane team to authorize there.\nSign in to sliplane.io first. When switching teams, choose to overwrite the current profile,\ncreate a new profile, or cancel. Overwriting clears the old team's project and S3 credentials.\nBrowser logins renew automatically while you use the CLI at least once every 7 days.\nSupply --token or SLIPLANE_TOKEN to save an API token instead.",
 		Example: "  sliplane auth login\n  sliplane auth login --profile work --token TOKEN",
 		RunE:    func(command *cobra.Command, _ []string) error { return o.login(command) },
 	}, &cobra.Command{
