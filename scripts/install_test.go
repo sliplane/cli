@@ -201,22 +201,24 @@ func TestInstall(t *testing.T) {
 
 func TestInstallPath(t *testing.T) {
 	for _, test := range []struct {
-		name, shell, profile, reply                                                                   string
-		arguments                                                                                     []string
-		terminal, wantPrompt, wantSetup, existingProfile, customZdotdir, brokenProfile, alreadyOnPath bool
+		name, shell, profile, reply                                                                     string
+		arguments                                                                                       []string
+		terminal, wantPrompt, wantSetup, existingProfile, customConfigDir, brokenProfile, alreadyOnPath bool
 	}{
 		{name: "redirected output skips setup", shell: "/bin/bash", profile: ".bashrc"},
 		{name: "bash setup creates profile", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--setup-path"}, wantSetup: true},
 		{name: "zsh setup preserves profile", shell: "/bin/zsh", profile: ".zshrc", arguments: []string{"--setup-path", "1.2.3"}, wantSetup: true, existingProfile: true},
 		{name: "bash login profile fallback", shell: "/bin/bash", profile: ".bash_profile", arguments: []string{"--setup-path"}, wantSetup: true, existingProfile: true},
-		{name: "zsh custom config directory", shell: "/bin/zsh", profile: ".zshrc", arguments: []string{"--setup-path"}, wantSetup: true, customZdotdir: true},
-		{name: "unsupported shell gets instructions", shell: "/usr/bin/fish", profile: ".bashrc", arguments: []string{"--setup-path"}},
+		{name: "zsh custom config directory", shell: "/bin/zsh", profile: ".zshrc", arguments: []string{"--setup-path"}, wantSetup: true, customConfigDir: true},
+		{name: "fish setup creates config", shell: "/usr/bin/fish", profile: "fish/config.fish", arguments: []string{"--setup-path"}, wantSetup: true},
+		{name: "fish custom config directory", shell: "/usr/bin/fish", profile: "fish/config.fish", arguments: []string{"--setup-path"}, wantSetup: true, existingProfile: true, customConfigDir: true},
+		{name: "unsupported shell gets instructions", shell: "/bin/tcsh", profile: ".bashrc", arguments: []string{"--setup-path"}},
 		{name: "explicit setup in automation", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--non-interactive", "--setup-path"}, wantSetup: true},
 		{name: "unwritable profile keeps install", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--setup-path"}, brokenProfile: true},
 		{name: "existing PATH needs no manual setup", shell: "/bin/bash", profile: ".bashrc", alreadyOnPath: true},
 		{name: "explicit setup persists an existing PATH", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--setup-path"}, alreadyOnPath: true, wantSetup: true},
 		{name: "interactive default accepts", shell: "/bin/zsh", profile: ".zshrc", terminal: true, reply: "\n", wantPrompt: true, wantSetup: true},
-		{name: "interactive hint quotes custom config directory", shell: "/bin/zsh", profile: ".zshrc", terminal: true, reply: "\n", wantPrompt: true, wantSetup: true, customZdotdir: true},
+		{name: "interactive hint quotes custom config directory", shell: "/bin/zsh", profile: ".zshrc", terminal: true, reply: "\n", wantPrompt: true, wantSetup: true, customConfigDir: true},
 		{name: "interactive decline preserves profile", shell: "/bin/bash", profile: ".bashrc", terminal: true, reply: "n\n", wantPrompt: true, existingProfile: true},
 		{name: "noninteractive flag skips terminal prompt", shell: "/bin/bash", profile: ".bashrc", arguments: []string{"--non-interactive"}, terminal: true},
 	} {
@@ -224,7 +226,7 @@ func TestInstallPath(t *testing.T) {
 			directory := t.TempDir()
 			archiveName := "sliplane_1.2.3_linux_amd64.tar.gz"
 			// Profiles run `sliplane completion`, which must print a valid script.
-			binary := []byte("#!/bin/sh\ncase \"$1\" in\n  version) echo 'sliplane 1.2.3 (commit test)' ;;\n  completion) echo \"sliplane_completion=$2\" ;;\nesac\n")
+			binary := []byte("#!/bin/sh\ncase \"$1-$2\" in\n  version-*) echo 'sliplane 1.2.3 (commit test)' ;;\n  completion-fish) echo 'set sliplane_completion fish' ;;\n  completion-*) echo \"sliplane_completion=$2\" ;;\nesac\n")
 			archive := releaseArchive(t, binary)
 			writeFile(t, filepath.Join(directory, archiveName), archive.Bytes(), 0600)
 			checksum := fmt.Sprintf("%x  %s\n", sha256.Sum256(archive.Bytes()), archiveName)
@@ -232,14 +234,18 @@ func TestInstallPath(t *testing.T) {
 			installDirectory := filepath.Join(directory, "user's $literal `bin`")
 			command := installerCommand(t, directory, installDirectory, "1.2.3", "Linux", "x86_64", test.arguments...)
 			home := t.TempDir()
-			configDirectory := home
-			command.Env = append(command.Env, "HOME="+home, "SHELL="+test.shell)
-			if test.customZdotdir {
-				configDirectory = filepath.Join(home, "user's zsh $config")
+			shell := filepath.Base(test.shell)
+			configDirectory, configVariable := home, "ZDOTDIR"
+			if shell == "fish" {
+				configDirectory, configVariable = filepath.Join(home, ".config"), "XDG_CONFIG_HOME"
+			}
+			command.Env = append(command.Env, "HOME="+home, "SHELL="+test.shell, "ZDOTDIR=", "XDG_CONFIG_HOME=")
+			if test.customConfigDir {
+				configDirectory = filepath.Join(home, "user's "+shell+" $config")
 				if err := os.Mkdir(configDirectory, 0700); err != nil {
 					t.Fatal(err)
 				}
-				command.Env = append(command.Env, "ZDOTDIR="+configDirectory)
+				command.Env = append(command.Env, configVariable+"="+configDirectory)
 			}
 			if test.alreadyOnPath {
 				for _, entry := range command.Environ() {
@@ -251,6 +257,9 @@ func TestInstallPath(t *testing.T) {
 			profile := filepath.Join(configDirectory, test.profile)
 			original := []byte("# existing user configuration\nexport KEEP_ME=yes\n")
 			if test.existingProfile {
+				if err := os.MkdirAll(filepath.Dir(profile), 0700); err != nil {
+					t.Fatal(err)
+				}
 				writeFile(t, profile, original, 0600)
 			}
 			if test.brokenProfile {
@@ -299,7 +308,7 @@ func TestInstallPath(t *testing.T) {
 			if readError != nil {
 				t.Fatal(readError)
 			}
-			if strings.Contains(string(output), "export PATH=") {
+			if strings.Contains(string(output), "Add the installation directory") {
 				t.Fatalf("setup printed PATH instructions instead of a profile reload: %s", output)
 			}
 			if test.wantPrompt {
@@ -323,21 +332,26 @@ func TestInstallPath(t *testing.T) {
 			if test.existingProfile && !bytes.HasPrefix(contents, original) {
 				t.Fatal("lost existing configuration")
 			}
-			check := exec.Command("sh", "-c", `. "$1"; printf '%s' "$PATH"`, "sh", profile)
-			path, err := check.Output()
-			if err != nil || !strings.HasPrefix(string(path), installDirectory+":") {
-				t.Fatalf("profile PATH does not select installation: %v %s", err, path)
+			completion := "eval \"$(sliplane completion " + shell + ")\""
+			// bash completion also needs bash-completion; stand in for it.
+			load := exec.Command(shell, "-c", `_get_comp_words_by_ref() { :; }; . "$1"; printf '%s %s' "$sliplane_completion" "$PATH"`, shell, profile)
+			if shell == "fish" {
+				completion = "sliplane completion fish | source"
+				load = exec.Command(shell, "-c", `source $argv[1]; printf '%s %s' $sliplane_completion (string join : $PATH)`, profile)
+			} else {
+				check := exec.Command("sh", "-c", `. "$1"; printf '%s' "$PATH"`, "sh", profile)
+				path, err := check.Output()
+				if err != nil || !strings.HasPrefix(string(path), installDirectory+":") {
+					t.Fatalf("profile PATH does not select installation: %v %s", err, path)
+				}
 			}
-			shell := filepath.Base(test.shell)
-			if strings.Count(string(contents), "eval \"$(sliplane completion "+shell+")\"") != 1 {
+			if strings.Count(string(contents), completion) != 1 {
 				t.Fatalf("profile does not load %s completion:\n%s", shell, contents)
 			}
 			if _, err := exec.LookPath(shell); err == nil {
-				// bash completion also needs bash-completion; stand in for it.
-				load := exec.Command(shell, "-c", `_get_comp_words_by_ref() { :; }; . "$1"; printf '%s' "$sliplane_completion"`, shell, profile)
 				load.Env = append(command.Env, "ZDOTDIR="+t.TempDir())
-				if loaded, err := load.CombinedOutput(); err != nil || string(loaded) != shell {
-					t.Fatalf("%s did not load completion: %v %s", shell, err, loaded)
+				if loaded, err := load.CombinedOutput(); err != nil || !strings.HasPrefix(string(loaded), shell+" "+installDirectory+":") {
+					t.Fatalf("%s did not load the profile: %v %s", shell, err, loaded)
 				}
 			}
 			repeat := exec.Command("sh", "install.sh", "--setup-path")
@@ -347,7 +361,7 @@ func TestInstallPath(t *testing.T) {
 			if err != nil {
 				t.Fatalf("repeat install: %v\n%s", err, repeatOutput)
 			}
-			if !strings.Contains(string(repeatOutput), "Already up to date") || strings.Contains(string(repeatOutput), "export PATH=") || strings.Contains(string(repeatOutput), "auth login") {
+			if !strings.Contains(string(repeatOutput), "Already up to date") || strings.Contains(string(repeatOutput), "Add the installation directory") || strings.Contains(string(repeatOutput), "auth login") {
 				t.Fatalf("unexpected repeat install output: %s", repeatOutput)
 			}
 			afterRepeat, err := os.ReadFile(profile)
